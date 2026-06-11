@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Final
 
-from .unity_profile import load_cached_profile
+from .profile_cache import load_cached_profile
 
 UNITY_MCP_PACKAGE_URL: Final[
     str

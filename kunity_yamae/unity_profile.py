@@ -1,9 +1,9 @@
-import json
 import re
 from pathlib import Path
 from typing import Final
 
 from .constants import GENERATED_FOLDERS
+from .profile_cache import load_cached_profile as load_cached_profile
 
 RENDER_PIPELINE_PACKAGES: Final[dict[str, str]] = {
     "com.unity.render-pipelines.universal": "urp",
@@ -21,18 +21,6 @@ def collect_unity_facts(project_path: Path, packages: dict[str, str]) -> dict:
         "graphics_defaults": _detect_graphics_defaults(project_path),
         "architecture_patterns": _detect_architecture_patterns(project_path),
     }
-
-
-def load_cached_profile(project_path: Path) -> dict:
-    profile_path = project_path / ".unity-harness" / "cache" / "project-profile.json"
-    fallback_path = project_path / ".unity-harness" / "project-profile.json"
-    for path in (profile_path, fallback_path):
-        if path.exists():
-            with open(path, "r", encoding="utf-8") as file:
-                loaded = json.load(file)
-            if isinstance(loaded, dict):
-                return loaded
-    return {}
 
 
 def _detect_render_pipeline(project_path: Path, packages: dict[str, str]) -> str:

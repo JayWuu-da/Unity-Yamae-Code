@@ -1,11 +1,18 @@
 """Context selector - provides only relevant files and rule cards for a task."""
 
-import re
 from pathlib import Path
 
 from .constants import GENERATED_FOLDERS
+from .profile_cache import load_cached_profile
+from .risk_checks import (
+    check_data_contract,
+    check_execution_path,
+    check_graphics_platform,
+    check_ui_interaction,
+    has_task_keyword,
+    normalize_task_text,
+)
 from .semantic_index import runtime_safety_hints
-from .unity_profile import load_cached_profile
 
 
 class ContextSelector:
@@ -28,7 +35,7 @@ class ContextSelector:
             "relevant_files": [],
             "summaries": [],
             "unity_facts": self._select_unity_facts(task),
-            "manual_checks": self._manual_checks(task, risk_report),
+            "manual_checks": self._manual_checks(task, mode),
             "project_memory": self._load_nearest_memory(task),
         }
 
@@ -61,16 +68,14 @@ class ContextSelector:
     def _select_unity_facts(self, task: str) -> dict:
         profile = load_cached_profile(self.project_path)
         fact_keys = ["render_pipeline", "input_system", "platform_targets", "asset_summary"]
-        task_lower = task.lower()
-        if any(token in task_lower for token in ["ui", "button", "onclick", "canvas", "raycast"]):
+        task_text = normalize_task_text(task)
+        if check_ui_interaction(task_text, []):
             fact_keys.append("ui_system")
-        if any(
-            token in task_lower for token in ["texture", "compression", "shader", "android", "ios"]
-        ):
+        if check_graphics_platform(task_text, []):
             fact_keys.append("graphics_defaults")
-        if any(
-            token in task_lower
-            for token in [
+        if has_task_keyword(
+            task_text,
+            [
                 "mvp",
                 "mvc",
                 "presenter",
@@ -79,87 +84,56 @@ class ContextSelector:
                 "service",
                 "architecture",
                 "refactor",
-            ]
+            ],
         ):
             fact_keys.append("architecture_patterns")
         selected = {key: profile.get(key, {}) for key in fact_keys}
         selected["asset_summary"] = self._task_focused_asset_summary(
-            task_lower,
+            task_text,
             selected.get("asset_summary", {}),
             profile.get("vfx_semantics", {}),
         )
-        if any(token in task_lower for token in ["vfx", "visual", "ability", "prefab"]):
+        if has_task_keyword(task_text, ["vfx", "visual", "ability", "prefab"]):
             selected["vfx_semantics"] = profile.get("vfx_semantics", {})
         safety = runtime_safety_hints(task, self.project_path)
         if safety:
             selected["runtime_safety"] = safety
         return selected
 
-    def _manual_checks(self, task: str, risk_report: dict) -> list[str]:
-        task_lower = task.lower()
+    def _manual_checks(self, task: str, mode: str) -> list[str]:
+        task_text = normalize_task_text(task)
         checks = []
-        if any(token in task_lower for token in ["ui", "button", "onclick", "canvas", "raycast"]):
+        if check_ui_interaction(task_text, []):
             checks.append(
                 "Verify EventSystem, GraphicRaycaster, interactable state, and raycast blockers."
             )
-        if self._has_task_keyword(
-            task_lower,
-            [
-                "route",
-                "routing",
-                "popup",
-                "openpopup",
-                "createpopup",
-                "shortcut",
-                "listener",
-                "binding",
-                "controller reset",
-                "reset path",
-                "tab",
-                "lock condition",
-            ],
-        ):
+        if check_execution_path(task_text, []):
             checks.append(
                 "Trace the real user path before editing: entry point, open/create call, "
                 "prefab or listener binding, controller reset, lock conditions, and final renderer."
             )
-        if self._has_task_keyword(
-            task_lower,
-            [
-                "table",
-                "tables",
-                "localization",
-                "locale",
-                "packet",
-                "payload",
-                "dto",
-                "response",
-                "contract",
-                "server",
-                "backend",
-                "reward",
-                "rewards",
-                "merge",
-            ],
-        ):
+        if check_data_contract(task_text, []):
             checks.append(
                 "Verify source table rows, localization keys, displayed text, "
                 "request/response DTOs, final payload shape, merge rules, and response apply path."
             )
-        if any(token in task_lower for token in ["prefab", "scene", "hierarchy"]):
+        if has_task_keyword(task_text, ["prefab", "scene", "hierarchy"]):
             checks.append(
                 "Verify prefab overrides, missing scripts, active hierarchy, "
                 "and serialized references."
             )
-        if any(token in task_lower for token in ["texture", "compression", "android", "ios", "pc"]):
+        if check_graphics_platform(task_text, []):
             checks.append(
                 "Compare Android, iOS, and PC import overrides before recommending changes."
             )
-        if risk_report.get("mode") in ("asset_safe", "migration"):
+        if mode in ("asset_safe", "migration"):
             checks.append(
                 "Run Unity Editor/manual inspection before claiming visual or Inspector behavior."
             )
-        if any(token in task_lower for token in ["vfx", "visual", "ability", "resources.load"]):
+        if has_task_keyword(
+            task_text,
+            ["vfx", "visual", "ability", "resources.load", "resources load"],
+        ):
             checks.append(
                 "Use Unity MCP for refresh, tests, Game View screenshot, hierarchy, "
                 "and console checks."
@@ -206,25 +180,25 @@ class ContextSelector:
         task_tokens = {token for token in task_lower.replace("/", " ").split() if len(token) > 2}
         return any(token in path_lower for token in task_tokens)
 
-    @staticmethod
-    def _has_task_keyword(task_lower: str, keywords: list[str]) -> bool:
-        return any(
-            re.search(rf"(?<![a-z0-9_]){re.escape(keyword)}(?![a-z0-9_])", task_lower)
-            for keyword in keywords
-        )
-
     def _infer_target_files(self, task: str) -> list[str]:
-        task_lower = task.lower()
+        task_words = self._search_words(task)
         files = []
         for cs_file in self.project_path.rglob("*.cs"):
             if self._is_in_generated(cs_file):
                 continue
-            name = cs_file.stem.lower()
-            words = set(task_lower.split())
-            name_words = set(name.replace("_", " ").replace("-", " ").split())
-            if words & name_words:
-                files.append(str(cs_file.relative_to(self.project_path)))
+            name_words = self._search_words(cs_file.stem)
+            if task_words & name_words:
+                files.append(cs_file.relative_to(self.project_path).as_posix())
         return files[: self.max_files]
+
+    @staticmethod
+    def _search_words(text: str) -> set[str]:
+        normalized = normalize_task_text(text)
+        words = {token for token in normalized.split() if len(token) > 2}
+        compact = normalized.replace(" ", "")
+        if len(compact) > 2:
+            words.add(compact)
+        return words
 
     def _load_nearest_memory(self, task: str) -> str | None:
         candidates = [

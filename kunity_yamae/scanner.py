@@ -1,6 +1,8 @@
 """Unity project scanner - detects project structure and caches facts."""
 
 import json
+import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,9 +36,35 @@ class UnityProjectScanner:
         profile["vfx_semantics"] = detect_vfx_semantics(self.project_path)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = self.cache_dir / "project-profile.json"
-        with open(cache_path, "w", encoding="utf-8") as f:
-            json.dump(profile, f, indent=2)
+        tmp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w",
+                delete=False,
+                dir=self.cache_dir,
+                encoding="utf-8",
+            ) as f:
+                tmp_path = Path(f.name)
+                json.dump(profile, f, indent=2)
+            self._replace_cache_file(tmp_path, cache_path)
+        finally:
+            if tmp_path is not None and tmp_path.exists():
+                tmp_path.unlink()
         return profile
+
+    def _replace_cache_file(self, tmp_path: Path, cache_path: Path) -> None:
+        last_error = None
+        for attempt in range(5):
+            try:
+                tmp_path.replace(cache_path)
+                return
+            except PermissionError as exc:
+                last_error = exc
+                if attempt == 4:
+                    break
+                time.sleep(0.05 * (attempt + 1))
+        if last_error is not None:
+            raise last_error
 
     def _detect_unity_version(self) -> str:
         version_file = self.project_path / "ProjectSettings" / "ProjectVersion.txt"
