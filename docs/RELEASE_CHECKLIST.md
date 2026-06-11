@@ -14,12 +14,12 @@ python -m ruff check .
 Use a fixture or disposable Unity project:
 
 ```bash
-python tests/fixtures/make_unity_project.py --kind ui-graphics-architecture --out .omo/tmp/release-fixture --git-init
-kunity-yamae --project .omo/tmp/release-fixture scan --json
-kunity-yamae --project .omo/tmp/release-fixture risk "Fix prefab button raycast" --json
-kunity-yamae --project .omo/tmp/release-fixture context --pretty "Fix prefab button raycast"
-kunity-yamae --project .omo/tmp/release-fixture providers doctor --json
-kunity-yamae --project .omo/tmp/release-fixture run "Fix prefab button raycast" --plan-only --verify-dry-run --json
+python tests/fixtures/make_unity_project.py --kind ui-graphics-architecture --out tmp/release-fixture --git-init
+kunity-yamae --project tmp/release-fixture scan --json
+kunity-yamae --project tmp/release-fixture risk "Fix prefab button raycast" --json
+kunity-yamae --project tmp/release-fixture context --pretty "Fix prefab button raycast"
+kunity-yamae --project tmp/release-fixture providers doctor --json
+kunity-yamae --project tmp/release-fixture run "Fix prefab button raycast" --plan-only --verify-dry-run --json
 ```
 
 ## Unity Editor Checks
