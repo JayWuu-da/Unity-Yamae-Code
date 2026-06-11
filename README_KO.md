@@ -79,7 +79,7 @@ K-Unity-Yamae는 작업을 대신 완성하는 게임 엔진 플러그인이 아
 권장 방식은 저장소를 받아 Python 개발 모드로 설치하는 것입니다.
 
 ```bash
-git clone https://github.com/your-org/K-Unity-Yamae.git
+git clone https://github.com/JayWuu-da/K-Unity-Yamae.git
 cd K-Unity-Yamae
 pip install -e .
 ```

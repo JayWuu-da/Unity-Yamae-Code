@@ -140,7 +140,7 @@ User Task
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/K-Unity-Yamae.git
+git clone https://github.com/JayWuu-da/K-Unity-Yamae.git
 cd K-Unity-Yamae
 
 # Install in development mode
@@ -1077,7 +1077,7 @@ $ kunity-yamae guard-diff
 ### Development Setup
 
 ```bash
-git clone https://github.com/your-org/K-Unity-Yamae.git
+git clone https://github.com/JayWuu-da/K-Unity-Yamae.git
 cd K-Unity-Yamae
 pip install -e ".[dev]"
 pytest tests/ -v
