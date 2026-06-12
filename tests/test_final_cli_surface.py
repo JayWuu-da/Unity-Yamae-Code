@@ -195,6 +195,19 @@ def test_readme_documents_final_cli_commands() -> None:
     assert "kunity-yamae context --pretty" in readme
 
 
+def test_docs_document_yamae_agent_bootstrap_contract() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_ko = Path("README_KO.md").read_text(encoding="utf-8")
+    release_checklist = Path("docs/RELEASE_CHECKLIST.md").read_text(encoding="utf-8")
+
+    assert "kunity-yamae init-agent --target both --write" in readme
+    assert ".Yamae/AGENT_BOOTSTRAP.md" in readme
+    assert ".Yamae/AGENT_BOOTSTRAP.md" in readme_ko
+    assert ".Yamae/AGENT_BOOTSTRAP.md" in release_checklist
+    assert ".Yamae/COMMANDS.md" in release_checklist
+    assert ".Yamae/UNITY_RULES.md" in release_checklist
+
+
 def test_run_help_matches_documented_disable_flags() -> None:
     runner = CliRunner()
 

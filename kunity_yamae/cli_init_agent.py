@@ -48,7 +48,7 @@ def init_agent_cmd(
 
 
 def _target_files(target: str) -> dict[str, str]:
-    files: dict[str, str] = {}
+    files: dict[str, str] = _yamae_files()
     if target in {"codex", "both"}:
         files["AGENTS.md"] = _agents_md()
         files[".codex/skills/k-unity-yamae/SKILL.md"] = _codex_skill()
@@ -56,6 +56,14 @@ def _target_files(target: str) -> dict[str, str]:
         files["CLAUDE.md"] = _claude_md()
         files[".claude/commands/kunity-yamae.md"] = _claude_command()
     return files
+
+
+def _yamae_files() -> dict[str, str]:
+    return {
+        ".Yamae/AGENT_BOOTSTRAP.md": _agent_bootstrap_md(),
+        ".Yamae/COMMANDS.md": _commands_md(),
+        ".Yamae/UNITY_RULES.md": _unity_rules_md(),
+    }
 
 
 def _file_status(project_path: Path, path: str, content: str, force: bool) -> dict:
@@ -80,7 +88,9 @@ def _emit(payload: dict, as_json: bool) -> None:
 def _agents_md() -> str:
     return "\n".join(
         [
-            "# K-Unity-Yamae",
+            "# K-Unity-Yamae AI Agent Instructions",
+            "",
+            "Before editing this Unity project, read `.Yamae/AGENT_BOOTSTRAP.md`.",
             "",
             "Before Unity production edits, run:",
             "",
@@ -109,6 +119,7 @@ def _codex_skill() -> str:
             "",
             "# K-Unity-Yamae",
             "",
+            "Read `.Yamae/AGENT_BOOTSTRAP.md` before editing Unity code.",
             "Run `kunity-yamae providers doctor --json` before provider-backed work.",
             "Run `kunity-yamae context --pretty \"$TASK\"` before editing Unity code.",
             "Run `kunity-yamae run \"$TASK\" --plan-only --json` for a lightweight harness plan.",
@@ -121,6 +132,7 @@ def _claude_md() -> str:
         [
             "# K-Unity-Yamae",
             "",
+            "Read `.Yamae/AGENT_BOOTSTRAP.md` before Unity edits.",
             "Use `kunity-yamae context --pretty \"$ARGUMENTS\"` before Unity edits.",
             "Use `kunity-yamae providers doctor --json` before provider calls.",
             "Keep Unity batchmode and live provider checks opt-in unless risk requires them.",
@@ -133,9 +145,108 @@ def _claude_command() -> str:
         [
             "# kunity-yamae",
             "",
+            "Read `.Yamae/AGENT_BOOTSTRAP.md` first.",
+            "",
             "```bash",
             'kunity-yamae context --pretty "$ARGUMENTS"',
             'kunity-yamae run "$ARGUMENTS" --plan-only --json',
             "```",
+        ]
+    )
+
+
+def _agent_bootstrap_md() -> str:
+    return "\n".join(
+        [
+            "# AI Agent Bootstrap",
+            "",
+            "This Unity project is configured for AI coding agents through K-Unity-Yamae.",
+            "This file is for agents, not human onboarding.",
+            "",
+            "## Required Order",
+            "",
+            "1. Read `AGENTS.md` or `CLAUDE.md` from the project root.",
+            "2. Read this `.Yamae/AGENT_BOOTSTRAP.md` file.",
+            "3. Run `kunity-yamae context --pretty \"$TASK\"` before editing Unity code.",
+            "4. Run `kunity-yamae risk --json \"$TASK\"` before choosing the edit scope.",
+            "5. After edits, run the matching guard and verification commands from "
+            "`.Yamae/COMMANDS.md`.",
+            "",
+            "## Operating Rules",
+            "",
+            "- Keep Unity edits surgical and scoped to the requested behavior.",
+            "- Treat `.meta`, `.prefab`, `.unity`, `.asset`, `.controller`, `.anim`, "
+            "and `.asmdef` changes as high risk.",
+            "- Do not claim Unity Editor, PlayMode, build, or visual verification "
+            "unless it actually ran.",
+            "- Prefer static guard evidence when Unity Editor is unavailable, and report "
+            "that limitation clearly.",
+            "- Use one writer agent for file mutation; parallel agents may do read-only analysis.",
+        ]
+    )
+
+
+def _commands_md() -> str:
+    return "\n".join(
+        [
+            "# K-Unity-Yamae Agent Commands",
+            "",
+            "Use these commands from the Unity project root.",
+            "",
+            "## Context Before Editing",
+            "",
+            "```bash",
+            'kunity-yamae context --pretty "$TASK"',
+            'kunity-yamae risk --json "$TASK"',
+            "```",
+            "",
+            "## Plan Without Mutating Files",
+            "",
+            "```bash",
+            'kunity-yamae run "$TASK" --plan-only --verify-dry-run --json',
+            "```",
+            "",
+            "## Guard Current Diff",
+            "",
+            "```bash",
+            "kunity-yamae guard-diff --json",
+            "```",
+            "",
+            "## Verification Plan",
+            "",
+            "```bash",
+            "kunity-yamae verify --dry-run --json --qa-level standard",
+            "```",
+        ]
+    )
+
+
+def _unity_rules_md() -> str:
+    return "\n".join(
+        [
+            "# Unity Agent Rules",
+            "",
+            "## High-Risk Files",
+            "",
+            "- Do not directly edit `.meta` files unless the task is explicitly about "
+            "GUID/import metadata.",
+            "- Do not directly edit `.unity`, `.prefab`, `.asset`, `.controller`, or "
+            "`.anim` YAML without a guard plan.",
+            "- Do not rename serialized fields without checking prefab, scene, and asset "
+            "references.",
+            "- Do not move runtime scripts across asmdef boundaries without checking "
+            "assembly references.",
+            "",
+            "## Runtime Boundaries",
+            "",
+            "- Keep Editor-only APIs under Editor assemblies or Editor folders.",
+            "- Do not add UnityEditor references to runtime code.",
+            "- Do not widen server/API/socket behavior unless the user explicitly "
+            "requested that surface.",
+            "",
+            "## Reporting",
+            "",
+            "- Separate what changed, what was verified, and what could not be verified.",
+            "- If Unity Editor was unavailable, say that only static checks ran.",
         ]
     )

@@ -47,8 +47,14 @@ Confirm generated files:
 
 - `AGENTS.md`
 - `CLAUDE.md`
+- `.Yamae/AGENT_BOOTSTRAP.md`
+- `.Yamae/COMMANDS.md`
+- `.Yamae/UNITY_RULES.md`
 - `.codex/skills/k-unity-yamae/SKILL.md`
 - `.claude/commands/kunity-yamae.md`
+
+Confirm `AGENTS.md` and `CLAUDE.md` route agents to `.Yamae/AGENT_BOOTSTRAP.md`
+before Unity edits.
 
 ## Guarded Edit Checks
 

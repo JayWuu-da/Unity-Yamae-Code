@@ -185,6 +185,8 @@ kunity-yamae init-agent --target both --write
 ```
 
 This writes repo-local entry files for Codex and Claude Code so both agents can call the same Unity-aware harness instead of relying on a long pasted prompt.
+`init-agent` also writes `.Yamae/AGENT_BOOTSTRAP.md`, `.Yamae/COMMANDS.md`, and `.Yamae/UNITY_RULES.md`.
+Codex starts from `AGENTS.md`, Claude starts from `CLAUDE.md`, and both files route the agent into `.Yamae/AGENT_BOOTSTRAP.md` before Unity edits.
 
 ### 1. Scan your Unity project
 
