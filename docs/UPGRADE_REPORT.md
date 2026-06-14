@@ -6,16 +6,16 @@
 
 | Theme | Result |
 | --- | --- |
-| Codex and Claude usability | `install`, `init-agent`, project-local prompts, and CLI entrypoints are available |
-| LazyCodex-style handoff | `local-patch` and `run --guarded-agent-patch` support patch-first guarded execution |
+| Codex and Claude usability | `install`, `init-agent`, project-local skills, and CLI entrypoints are available |
+| LazyCodex-style handoff | `local-patch` and `run --patch-file proposed.diff --guarded-agent-patch` support patch-first guarded execution |
 | Unity production context | Rule cards, risk model, context pack, UI/graphics/architecture facts, and manual check prompts are wired |
 | Editor inspection | Probe source can emit inspector listeners, missing references, prefab overrides, and UI component state |
-| Provider diagnostics | Provider doctor reports readiness without forcing all providers to be installed |
+| Desktop integration diagnostics | `providers doctor` reports Codex/Claude desktop and CLI entrypoint readiness through local file checks |
 | Release operability | `release-check --json` reports package data and required quality gates |
 
 ## Remaining High-Value Work
 
-1. Add real streaming/tool-loop adapters for Codex and Claude Code APIs.
+1. Add richer Codex CLI and Claude CLI orchestration examples that still run through local skills and guarded patch handoff.
 2. Expand Unity Editor probe coverage for Addressables, animation controller transitions, material/shader variants, and prefab override value diffs.
 3. Add packaging metadata for a distributable wheel and optional Codex plugin bundle.
 4. Add golden fixture projects for URP/HDRP, mobile texture compression, localization tables, Addressables, and large UI prefab sets.
@@ -28,7 +28,7 @@ For live-service Unity projects, keep the default loop lightweight:
 ```bash
 kunity-yamae scan
 kunity-yamae run "task" --plan-only --verify-dry-run --editor-probe
-kunity-yamae run "task" --guarded-agent-patch
+kunity-yamae run "task" --agent local-patch --patch-file proposed.diff --guarded-agent-patch
 kunity-yamae verify --dry-run
 ```
 

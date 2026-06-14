@@ -1,21 +1,17 @@
 import pytest
 
 
-def test_provider_doctor_v2_contract_rejects_missing_status() -> None:
-    from kunity_yamae.contracts import ContractError, validate_provider_doctor_v2
+def test_integration_doctor_v1_contract_rejects_missing_status() -> None:
+    from kunity_yamae.contracts import ContractError, validate_integration_doctor_v1
 
-    with pytest.raises(ContractError, match="providers.codex.status"):
-        validate_provider_doctor_v2(
+    with pytest.raises(ContractError, match="integrations.codex-cli.status"):
+        validate_integration_doctor_v1(
             {
-                "schema": "unity-harness.provider-doctor.v2",
-                "providers": {
-                    "codex": {
-                        "enabled": True,
-                        "env_var": "OPENAI_API_KEY",
-                        "has_key": False,
-                        "sdk": "openai",
-                        "sdk_available": True,
-                        "problems": ["missing_key"],
+                "schema": "unity-harness.desktop-integration-doctor.v1",
+                "integrations": {
+                    "codex-cli": {
+                        "kind": "desktop-cli",
+                        "entrypoint": ".agents/skills/k-unity-yamae/SKILL.md",
                     }
                 },
             }

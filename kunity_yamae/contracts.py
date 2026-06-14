@@ -10,21 +10,25 @@ class ContractError(Exception):
         return f"Missing or invalid contract field: {self.field}"
 
 
-def validate_provider_doctor_v2(payload: dict[str, Any]) -> dict[str, Any]:
-    _require(payload.get("schema") == "unity-harness.provider-doctor.v2", "schema")
-    providers = _require_dict(payload, "providers")
-    for name, provider_value in providers.items():
-        provider = _require_mapping(provider_value, f"providers.{name}")
+def validate_integration_doctor_v1(payload: dict[str, Any]) -> dict[str, Any]:
+    _require(
+        payload.get("schema") == "unity-harness.desktop-integration-doctor.v1",
+        "schema",
+    )
+    integrations = _require_dict(payload, "integrations")
+    for name, integration_value in integrations.items():
+        integration = _require_mapping(integration_value, f"integrations.{name}")
         for field in (
-            "enabled",
-            "env_var",
-            "has_key",
-            "sdk",
-            "sdk_available",
-            "problems",
+            "kind",
+            "entrypoint",
             "status",
         ):
-            _require(field in provider, f"providers.{name}.{field}")
+            _require(field in integration, f"integrations.{name}.{field}")
+    offline_handoffs = _require_dict(payload, "offline_handoffs")
+    for name, handoff_value in offline_handoffs.items():
+        handoff = _require_mapping(handoff_value, f"offline_handoffs.{name}")
+        for field in ("status", "usage"):
+            _require(field in handoff, f"offline_handoffs.{name}.{field}")
     return payload
 
 
