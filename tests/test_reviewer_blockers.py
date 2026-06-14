@@ -3,7 +3,6 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-import kunity_yamae.cli_providers as cli_providers
 from kunity_yamae.cli import main
 
 
@@ -25,26 +24,18 @@ def create_bom_project(project_path: Path) -> None:
     )
 
 
-def test_provider_doctor_survives_nested_sdk_module_not_found(monkeypatch) -> None:
-    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+def test_provider_doctor_rejects_removed_api_provider_without_traceback(tmp_path: Path) -> None:
+    create_bom_project(tmp_path)
+    runner = CliRunner()
 
-    def raise_for_google(name: str):
-        if name == "google.genai":
-            raise ModuleNotFoundError("No module named 'google'")
-        return object()
+    result = runner.invoke(
+        main,
+        ["--project", str(tmp_path), "providers", "doctor", "gemini", "--json"],
+    )
 
-    monkeypatch.setattr(cli_providers.importlib.util, "find_spec", raise_for_google)
-
-    doctor = cli_providers.build_provider_doctor({
-        "agents": {"backends": {"gemini": {"api_key_env": "GOOGLE_API_KEY"}}}
-    })
-
-    assert doctor["providers"]["gemini"]["sdk_available"] is False
-    assert doctor["providers"]["gemini"]["problems"] == [
-        "missing_credentials",
-        "missing_sdk",
-    ]
-    assert doctor["providers"]["gemini"]["status"] == "missing_credentials"
+    assert result.exit_code == 1, result.output
+    assert "Unknown desktop integration: gemini" in result.output
+    assert "traceback" not in result.output.lower()
 
 
 def test_inspect_accepts_utf8_sig_manifest(tmp_path: Path) -> None:

@@ -25,7 +25,11 @@ console = Console()
     ),
     default=None,
 )
-@click.option("--agent", default=None, help="Agent backend (codex/claude/gemini/kimi/glm/mimo)")
+@click.option(
+    "--agent",
+    default=None,
+    help="Agent backend (local-patch only; Codex/Claude run through their desktop or CLI apps)",
+)
 @click.pass_context
 def work_cmd(ctx, task: str, auto: bool, mode: str | None, agent: str | None) -> None:
     config = ctx.obj["config"]

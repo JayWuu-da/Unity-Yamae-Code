@@ -1,21 +1,7 @@
-"""Agent adapters package - supports multiple AI coding agent backends."""
-
 from .base import BaseAgent
-from .claude_agent import ClaudeAgent
-from .codex_agent import CodexAgent
-from .gemini_agent import GeminiAgent
-from .glm_agent import GlmAgent
-from .kimi_agent import KimiAgent
 from .local_patch_agent import LocalPatchAgent
-from .mimo_agent import MiMoAgent
 
 AGENT_REGISTRY = {
-    "codex": CodexAgent,
-    "claude": ClaudeAgent,
-    "gemini": GeminiAgent,
-    "kimi": KimiAgent,
-    "glm": GlmAgent,
-    "mimo": MiMoAgent,
     "local-patch": LocalPatchAgent,
 }
 

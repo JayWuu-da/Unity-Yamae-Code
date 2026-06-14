@@ -38,6 +38,10 @@ coverage only.
 
 ## Agent Integration Checks
 
+Run these from Windows PowerShell when validating Codex App/CLI or Claude Code
+Desktop/CLI entrypoints. Claude Code Desktop should have Git for Windows
+available before opening a local Unity repository.
+
 ```bash
 kunity-yamae --project <unity-project> init-agent --target both --dry-run --json
 kunity-yamae --project <unity-project> init-agent --target both --write
@@ -47,7 +51,8 @@ Confirm generated files:
 
 - `AGENTS.md`
 - `CLAUDE.md`
-- `.codex/skills/k-unity-yamae/SKILL.md`
+- `.agents/skills/k-unity-yamae/SKILL.md`
+- `.claude/skills/k-unity-yamae/SKILL.md`
 - `.claude/commands/kunity-yamae.md`
 
 ## Guarded Edit Checks

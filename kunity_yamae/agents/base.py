@@ -109,7 +109,11 @@ class BaseAgent(ABC):
             prompt_parts.append(f"\n## Rule Cards\n{rule_content}")
 
         prompt_parts.append(
-            "\nProvide your changes. For each file, explain the Unity-specific risk decision."
+            "\n## Output Contract\n"
+            "Return a unified diff when code changes are needed so K-Unity-Yamae can "
+            "validate it through `--guarded-agent-patch`. Do not use "
+            "FILE/ACTION/CONTENT blocks for guarded flow output. For each file, explain "
+            "the Unity-specific risk decision outside the diff."
         )
         return "\n".join(prompt_parts)
 

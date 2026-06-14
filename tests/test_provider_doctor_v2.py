@@ -20,12 +20,10 @@ def create_minimal_project(project_path: Path) -> None:
     (project_path / "Assets").mkdir()
 
 
-def test_provider_doctor_v2_reports_missing_openai_key_without_traceback(
+def test_provider_doctor_reports_desktop_cli_integrations_without_api_keys(
     tmp_path: Path,
-    monkeypatch,
 ) -> None:
     create_minimal_project(tmp_path)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     runner = CliRunner()
 
     result = runner.invoke(
@@ -35,46 +33,42 @@ def test_provider_doctor_v2_reports_missing_openai_key_without_traceback(
             str(tmp_path),
             "providers",
             "doctor",
-            "codex",
-            "--json",
-        ],
-    )
-
-    assert result.exit_code == 2, result.output
-    payload = json.loads(result.output)
-    assert payload["schema"] == "unity-harness.provider-doctor.v2"
-    assert payload["providers"]["codex"]["status"] == "missing_credentials"
-    assert "traceback" not in result.output.lower()
-
-
-def test_provider_doctor_v2_accepts_fake_provider_endpoint(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    create_minimal_project(tmp_path)
-    monkeypatch.setenv("KUNITY_FAKE_OPENAI_KEY", "test-key")
-    runner = CliRunner()
-
-    result = runner.invoke(
-        main,
-        [
-            "--project",
-            str(tmp_path),
-            "providers",
-            "doctor",
-            "codex",
-            "--endpoint",
-            "http://127.0.0.1:8787/v1/responses",
-            "--api-key-env",
-            "KUNITY_FAKE_OPENAI_KEY",
-            "--no-live",
             "--json",
         ],
     )
 
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
-    provider = payload["providers"]["codex"]
-    assert provider["status"] in {"ready", "missing_sdk"}
-    assert provider["endpoint"] == "http://127.0.0.1:8787/v1/responses"
-    assert provider["live_checked"] is False
+    assert payload["schema"] == "unity-harness.desktop-integration-doctor.v1"
+    assert set(payload["integrations"]) == {
+        "codex-app",
+        "codex-cli",
+        "claude-code-desktop",
+        "claude-cli",
+    }
+    for integration in payload["integrations"].values():
+        assert "requires_" + "api_key" not in integration
+        assert integration["status"] in {"ready", "not_installed"}
+    assert "api_key" not in result.output.lower()
+    assert "traceback" not in result.output.lower()
+
+
+def test_provider_doctor_rejects_openai_api_provider(tmp_path: Path) -> None:
+    create_minimal_project(tmp_path)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        [
+            "--project",
+            str(tmp_path),
+            "providers",
+            "doctor",
+            "openai",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 1, result.output
+    assert "Unknown desktop integration: openai" in result.output
+    assert "OPENAI" + "_API_KEY" not in result.output

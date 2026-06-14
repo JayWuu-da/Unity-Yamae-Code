@@ -2,7 +2,7 @@
 
 **A thin, risk-adaptive Unity agent harness for AI coding agents.**
 
-K-Unity-Yamae is a Python-based safety layer that wraps AI coding agents (Codex, Claude, Gemini, Kimi, GLM, MiMo) with Unity-specific guardrails. It classifies each task by Unity-specific risk, injects only the relevant rule cards, protects serialized artifacts via guards, runs Unity batchmode verification, and produces evidence-tracked completion reports.
+K-Unity-Yamae is a Python-based safety layer for Codex App/CLI and Claude Code Desktop/CLI Unity work. It provides repo-local skills, project instructions, guarded patch handoff, Unity-specific risk classification, serialized artifact guards, Unity batchmode verification, and evidence-tracked completion reports.
 
 ---
 
@@ -17,14 +17,13 @@ K-Unity-Yamae is a Python-based safety layer that wraps AI coding agents (Codex,
 - [Risk Modes](#risk-modes)
 - [Unity Guards](#unity-guards)
 - [Verification Tiers](#verification-tiers)
-- [Agent Backends](#agent-backends)
+- [Desktop and CLI Integrations](#desktop-and-cli-integrations)
 - [Configuration](#configuration)
 - [Project Structure](#project-structure)
 - [Rule Cards](#rule-cards)
 - [Evidence Ledger](#evidence-ledger)
 - [Unity Editor Integration](#unity-editor-integration)
-- [Adding a Custom Agent](#adding-a-custom-agent)
-- [Examples](#examples)
+- [Advanced Topics](#advanced-topics)
 - [Inspired By](#inspired-by)
 - [License](#license)
 
@@ -86,10 +85,10 @@ User Task
 │  One writer agent at a time                             │
 │  Optional read-only scouts for analysis                 │
 │                                                         │
-│  ┌─────────┬─────────┬─────────┬─────────┬─────────┐   │
-│  │ Codex   │ Claude  │ Gemini  │ Kimi    │ MiMo    │   │
-│  │ GPT-4o  │ Sonnet  │ 2.5     │ 128K    │ auto    │   │
-│  └─────────┴─────────┴─────────┴─────────┴─────────┘   │
+│  ┌──────────────────┬────────────────────────────────┐ │
+│  │ Codex App/CLI    │ Claude Code Desktop/CLI         │ │
+│  │ repo skills      │ repo skills + slash command     │ │
+│  └──────────────────┴────────────────────────────────┘ │
 └───────────────────────┬─────────────────────────────────┘
                         │
                         ▼
@@ -153,9 +152,6 @@ cd K-Unity-Yamae
 # Install in development mode
 pip install -e .
 
-# Install with agent SDK dependencies
-pip install -e ".[agents]"
-
 # Install with dev dependencies
 pip install -e ".[dev]"
 ```
@@ -167,18 +163,14 @@ pip install -e ".[dev]"
 - `click>=8.0` - CLI framework
 - `rich>=13.0` - Terminal formatting
 
-**Agent dependencies** (optional, install with `pip install -e ".[agents]"`):
-- `openai>=1.0` - OpenAI Codex adapter
-- `anthropic>=0.30` - Claude adapter
-- `google-genai>=0.3` - Gemini adapter
-
-Kimi, GLM, and MiMo agents use `urllib.request` (Python stdlib) and need no extra packages.
-
 ### Requirements
 
 - Python >= 3.10
 - Git (for diff guards and git status checks)
 - Unity Editor (for verification tiers 1-5, optional for tier 0)
+- Windows users should run examples in PowerShell. Git for Windows is recommended
+  for Codex App/CLI and Claude Code Desktop/CLI sessions because both workflows
+  rely on git diff and shell behavior.
 
 ---
 
@@ -191,7 +183,11 @@ kunity-yamae install --codex --claude
 kunity-yamae init-agent --target both --write
 ```
 
-This writes repo-local entry files for Codex and Claude Code so both agents can call the same Unity-aware harness instead of relying on a long pasted prompt.
+This writes repo-local entry files for Codex App/CLI and Claude Code Desktop/CLI so both agents can call the same Unity-aware harness instead of relying on a long pasted prompt.
+
+On Windows, run these commands from PowerShell at the Unity project root. For
+Claude Code Desktop, install Git for Windows before opening the project so the
+Code tab can use the local repository and terminal reliably.
 
 ### 1. Scan your Unity project
 
@@ -221,15 +217,15 @@ Output:
 ### 3. Run the full pipeline
 
 ```bash
-kunity-yamae run "Fix enemy spawn delay bug" --agent claude
+kunity-yamae run "Fix enemy spawn delay bug" --agent local-patch --patch-file proposed.diff --guarded-agent-patch --json
 ```
 
-This runs the complete pipeline: risk classification -> agent execution -> guard checks -> verification -> report.
+This runs the guarded local handoff: risk classification -> local patch read -> guard evaluation -> JSON report.
 
 ### 4. Individual commands
 
 ```bash
-# Build a task context pack for Codex/Claude
+# Build a task context pack for Codex App/CLI or Claude Code
 kunity-yamae context --pretty "Fix UI raycast and Android texture compression"
 
 # Get a lightweight, non-mutating run plan
@@ -245,11 +241,11 @@ kunity-yamae inspect --json
 # Run Unity Editor API probe first, then merge richer Inspector facts
 kunity-yamae inspect --editor-probe --json
 
-# Diagnose provider env vars and SDK availability
+# Diagnose desktop/CLI entrypoint readiness
 kunity-yamae providers doctor --json
 
-# Run task through a specific agent
-kunity-yamae work "Fix null check in DamageCalculator" --agent codex
+# Validate a model-produced patch through the local guarded handoff
+kunity-yamae run "Fix null check in DamageCalculator" --agent local-patch --patch-file proposed.diff --guarded-agent-patch --json
 
 # Run verification only
 kunity-yamae verify --compile-only
@@ -269,16 +265,16 @@ kunity-yamae report --last
 
 ### `kunity-yamae install`
 
-Write lightweight repo-local entrypoints for Codex and Claude Code.
+Write lightweight repo-local skill entrypoints for Codex App/CLI and Claude Code.
 
 ```bash
 kunity-yamae install --codex --claude
 kunity-yamae install          # defaults to both
 kunity-yamae install --codex  # Codex skill only
-kunity-yamae install --claude # Claude command only
+kunity-yamae install --claude # Claude skill and command only
 ```
 
-**Output:** `.codex/skills/k-unity-yamae/SKILL.md` and/or `.claude/commands/kunity-yamae.md`.
+**Output:** `.agents/skills/k-unity-yamae/SKILL.md` and/or `.claude/skills/k-unity-yamae/SKILL.md` plus `.claude/commands/kunity-yamae.md`.
 
 ### `kunity-yamae scan`
 
@@ -295,7 +291,7 @@ kunity-yamae scan --json          # Machine-readable profile
 
 ### `kunity-yamae context`
 
-Build the compact task context pack used before a Codex or Claude Code edit.
+Build the compact task context pack used before a Codex App/CLI or Claude Code edit.
 
 ```bash
 kunity-yamae context --pretty "Fix UI raycast and Android texture compression"
@@ -329,27 +325,25 @@ kunity-yamae inspect --editor-probe --json
 
 ### `kunity-yamae providers doctor`
 
-Diagnose configured provider readiness for Codex, Claude, Gemini, Kimi, GLM, and MiMo.
+Diagnose Codex App/CLI and Claude Code Desktop/CLI entrypoint readiness.
 
 ```bash
 kunity-yamae providers doctor --json
 ```
 
-**Output:** Env var, key presence, SDK availability, readiness status, and the `kunity-yamae run --agent ...` usage command per provider.
-
-`--live` is opt-in. Without it, provider doctor does not call external APIs; it only checks config, env vars, and local SDK availability.
+**Output:** generated entrypoint path readiness, Windows guidance, and the local `local-patch` handoff. It performs local file checks only.
 
 ### `kunity-yamae work`
 
-Run a task through the selected agent backend.
+Run a task through the local guarded patch backend.
 
 ```bash
-kunity-yamae work "Fix enemy spawn delay" --agent claude
-kunity-yamae work "Add health bar UI" --mode standard --agent codex
+kunity-yamae work "Fix enemy spawn delay" --agent local-patch
+kunity-yamae run "Add health bar UI" --agent local-patch --patch-file proposed.diff --guarded-agent-patch --json
 ```
 
 **Options:**
-- `--agent` - Agent backend (codex, claude, gemini, kimi, glm, mimo)
+- `--agent` - Agent backend (`local-patch` only; Codex and Claude run through their own desktop/CLI apps)
 - `--mode` - Force a specific mode (fast_patch, standard, asset_safe, migration)
 - `--auto` - Auto-select mode from risk score
 
@@ -358,8 +352,8 @@ kunity-yamae work "Add health bar UI" --mode standard --agent codex
 Run the full pipeline (risk -> work -> verify -> guard -> report).
 
 ```bash
-kunity-yamae run "Rename PlayerStats.hitpoints to health" --agent claude
-kunity-yamae run "Fix typo in comments" --agent mimo --no-verify --no-guard
+kunity-yamae run "Rename PlayerStats.hitpoints to health" --agent local-patch --patch-file proposed.diff --guarded-agent-patch --json
+kunity-yamae run "Fix typo in comments" --agent local-patch --no-verify --no-guard
 kunity-yamae run "Fix UI button" --plan-only --verify-dry-run --json
 ```
 
@@ -368,7 +362,7 @@ kunity-yamae run "Fix UI button" --plan-only --verify-dry-run --json
 - `--verify` / `--no-verify` - Enable/disable verification (default: enabled)
 - `--guard` / `--no-guard` - Enable/disable guard checks (default: enabled)
 - `--plan-only` - Build scan/risk/context/guard/verify plan without agent execution
-- `--provider-check` - Fail fast when the selected provider is not ready
+- `--provider-check` - Fail fast when the selected desktop/CLI handoff is not ready
 - `--verify-dry-run` - Include Unity command lines without launching Unity
 
 ### `kunity-yamae verify`
@@ -623,69 +617,32 @@ Orchestrator that runs all guards against the current git diff.
 
 ---
 
-## Agent Backends
+## Desktop and CLI Integrations
 
-### Supported Agents
+K-Unity-Yamae does not run remote model calls inside the harness. Codex and Claude stay
+in their own desktop or CLI applications, while this harness supplies the
+Unity-aware commands, risk checks, and guarded patch validation those apps can
+invoke.
 
-| Backend | Model | Env Variable | SDK Required |
-|---------|-------|-------------|-------------|
-| **Codex** | gpt-4o | `OPENAI_API_KEY` | `openai>=1.0` |
-| **Claude** | claude-sonnet-4-20250514 | `ANTHROPIC_API_KEY` | `anthropic>=0.30` |
-| **Gemini** | gemini-2.5-flash | `GOOGLE_API_KEY` | `google-genai>=0.3` |
-| **Kimi** | moonshot-v1-128k | `KIMI_API_KEY` | None (urllib) |
-| **GLM** | glm-4-plus | `ZHIPU_API_KEY` | None (urllib) |
-| **MiMo** | mimo-auto | `MIMO_API_KEY` | None (urllib) |
+| Surface | Repo entrypoint | How it is used |
+|---------|-----------------|----------------|
+| Codex App | `.agents/skills/k-unity-yamae/SKILL.md` + `AGENTS.md` | Open the Unity project folder in Codex App. |
+| Codex CLI | `.agents/skills/k-unity-yamae/SKILL.md` + `AGENTS.md` | Run `codex` from the Unity project root. |
+| Claude Code Desktop | `.claude/skills/k-unity-yamae/SKILL.md` + `CLAUDE.md` | Open the project folder in the Code tab. |
+| Claude CLI | `.claude/commands/kunity-yamae.md` + `.claude/skills/k-unity-yamae/SKILL.md` | Run `claude` from the project root and invoke `/k-unity-yamae`. |
+| Local guarded handoff | `local-patch` | Validate unified diffs with Unity guards before applying. |
 
 ### Agent Configuration
 
-Each agent backend supports these configuration options in `config/default.yml`:
+The only executable harness backend is the local guarded patch handoff:
 
 ```yaml
 agents:
-  default: mimo  # Default agent when --agent is not specified
+  default: local-patch
   backends:
-    codex:
+    local-patch:
       enabled: true
-      model: gpt-4o
-      api_key_env: OPENAI_API_KEY
-      temperature: 0.2
-      max_retries: 3
-    claude:
-      enabled: true
-      model: claude-sonnet-4-20250514
-      api_key_env: ANTHROPIC_API_KEY
-      temperature: 0.2
-      max_tokens: 16384
-      max_retries: 3
-    kimi:
-      enabled: true
-      model: moonshot-v1-128k
-      api_key_env: KIMI_API_KEY
-      endpoint: "https://api.moonshot.cn/v1/chat/completions"
-      temperature: 0.2
-      timeout: 120
-      max_retries: 3
 ```
-
-### Agent Routing Strategy
-
-| Task Type | Risk Mode | Recommended Agent | Reason |
-|-----------|-----------|-------------------|--------|
-| Low-risk C# fix | Fast Patch | MiMo / GLM | Fast, cheap, sufficient quality |
-| MonoBehaviour logic | Standard | Codex (GPT-4o) | Good balance of quality and speed |
-| Serialized field rename | Migration | Claude (Sonnet) | Best at careful serialization reasoning |
-| Asset move/rename | Migration | Claude (Opus) | Highest accuracy for dangerous operations |
-| asmdef graph change | Migration | Codex (GPT-4o) | Good at graph analysis |
-| Editor script | Standard | Any | All agents handle this well |
-| Full project scan | Any | Kimi (128K) | Long context handles large projects |
-
-### Retry Logic
-
-All agents implement exponential backoff retry:
-
-- **Max retries:** Configurable per agent (default: 3)
-- **Backoff:** 2^attempt seconds (1s, 2s, 4s)
-- **Retried errors:** 429 (rate limit), 500/502/503 (server errors), timeouts, connection errors
 
 ---
 
@@ -730,11 +687,10 @@ verification:
     build: 1800
 
 agents:
-  default: claude
+  default: local-patch
   backends:
-    claude:
-      model: claude-opus-4-20250514
-      max_tokens: 32768
+    local-patch:
+      enabled: true
 ```
 
 ### All Configuration Keys
@@ -758,62 +714,18 @@ See `config/default.yml` for the complete configuration reference.
 
 ## Project Structure
 
-```
-K-Unity-Yamae/
-├── kunity_yamae/                # Main Python package
-│   ├── __init__.py             # Package version
-│   ├── cli.py                  # CLI entry point (Click)
-│   ├── config.py               # Config loader (YAML merge + env vars)
-│   ├── constants.py            # Shared constants
-│   ├── scanner.py              # Unity project scanner
-│   ├── risk.py                 # Risk classifier (regex-based)
-│   ├── modes.py                # Mode policy
-│   ├── verifier.py             # Unity batchmode runner
-│   ├── reporter.py             # Completion report writer
-│   ├── ledger.py               # Evidence ledger (JSONL)
-│   ├── context.py              # Context selector
-│   ├── guards/                 # Unity-specific guards
-│   │   ├── __init__.py
-│   │   ├── meta_guard.py       # .meta pairing + GUID continuity
-│   │   ├── yaml_guard.py       # Protected YAML file writes
-│   │   ├── serialization_guard.py  # Serialized field renames
-│   │   ├── boundary_guard.py   # Editor/runtime separation
-│   │   ├── asmdef_guard.py     # Assembly definition graph
-│   │   ├── addressables_guard.py   # Resources/Addressables paths
-│   │   └── diff_guard.py       # Git diff orchestrator
-│   ├── agents/                 # AI agent adapters
-│   │   ├── __init__.py         # Agent registry
-│   │   ├── base.py             # Base agent + system prompt
-│   │   ├── codex_agent.py      # OpenAI Codex adapter
-│   │   ├── claude_agent.py     # Anthropic Claude adapter
-│   │   ├── gemini_agent.py     # Google Gemini adapter
-│   │   ├── kimi_agent.py       # Moonshot Kimi adapter
-│   │   ├── glm_agent.py        # Zhipu GLM adapter
-│   │   └── mimo_agent.py       # Xiaomi MiMo adapter
-│   └── rules/                  # Rule card markdown files
-│       ├── global_rules.md
-│       ├── serialized_field_rename.md
-│       ├── meta_guid.md
-│       ├── prefab_scene_yaml.md
-│       ├── asmdef.md
-│       ├── editor_runtime_boundary.md
-│       └── resources_addressables.md
-├── config/
-│   └── default.yml             # Default configuration
-├── Editor/
-│   └── HarnessChecks.cs        # Unity Editor validation script
-├── tests/                      # Test suite (14 tests)
-│   ├── test_risk.py
-│   ├── test_guards.py
-│   └── test_scanner.py
-├── docs/                       # Documentation
-│   ├── ANALYSIS.md
-│   ├── ARCHITECTURE.md
-│   └── UPGRADE_REPORT.md
-├── pyproject.toml              # Python package config
-├── .gitignore
-└── README.md
-```
+The README stays at the operator level. See `docs/ARCHITECTURE.md` for the full
+module map.
+
+| Area | Main modules |
+| --- | --- |
+| CLI surface | `cli.py`, `cli_run.py`, `cli_verify.py`, `cli_release_check.py` |
+| Run workflow | `cli_run_payload.py`, `run_pipeline.py`, `cli_run_steps.py` |
+| Unity verification | `verifier.py`, `unity_verification_contracts.py`, `unity_verification_plan.py`, `unity_verification_steps.py`, `unity_verification_support.py` |
+| Unity project facts | `unity_profile.py`, `unity_profile_types.py`, `unity_profile_graphics.py`, `unity_profile_architecture.py`, `unity_profile_common.py` |
+| Safety guards | `guards/`, `guarded_edits.py`, `risk.py`, `risk_checks.py` |
+| Agent adapters | `agents/` |
+| Tests and docs | `tests/`, `docs/` |
 
 ---
 
@@ -918,152 +830,14 @@ kunity-yamae inspect --editor-probe --json
 
 ---
 
-## Adding a Custom Agent
+## Advanced Topics
 
-### Step 1: Create the agent file
+Keep the README focused on setup and command usage. Detailed extension examples,
+architecture notes, risk model rationale, and release checks live in:
 
-```python
-# kunity_yamae/agents/my_agent.py
-
-import os
-import time
-from pathlib import Path
-
-from .base import BaseAgent
-from ..ledger import EvidenceLedger
-
-
-class MyAgent(BaseAgent):
-    def execute(self, task: str, project_path: Path, risk_report: dict,
-                mode: str, ledger: EvidenceLedger) -> dict:
-        api_key = os.environ.get(self.agent_config.get("api_key_env", "MY_API_KEY"), "")
-        if not api_key:
-            return {"status": "error", "message": "MY_API_KEY not set"}
-
-        max_retries = self.agent_config.get("max_retries", 3)
-
-        for attempt in range(max_retries):
-            try:
-                prompt = self._build_prompt(task, risk_report, mode, project_path)
-
-                # Call your API here
-                result_text = call_my_api(prompt, api_key)
-
-                changes = self._parse_file_changes(result_text)
-                ledger.add_event("agent_output", {
-                    "agent": "my_agent",
-                    "preview": result_text[:500],
-                    "changes": len(changes),
-                })
-                return {"status": "completed", "output": result_text, "changes": changes}
-
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-                    continue
-                return {"status": "error", "message": str(e)}
-
-        return {"status": "error", "message": "Max retries exceeded"}
-```
-
-### Step 2: Register the agent
-
-```python
-# kunity_yamae/agents/__init__.py
-
-from .my_agent import MyAgent
-
-AGENT_REGISTRY = {
-    # ... existing agents ...
-    "my_agent": MyAgent,
-}
-```
-
-### Step 3: Add configuration
-
-```yaml
-# config/default.yml
-
-agents:
-  backends:
-    my_agent:
-      enabled: true
-      model: my-model-name
-      api_key_env: MY_API_KEY
-      temperature: 0.2
-      max_retries: 3
-```
-
-### Step 4: Use it
-
-```bash
-kunity-yamae work "Fix bug" --agent my_agent
-```
-
----
-
-## Examples
-
-### Example 1: Low-Risk Fix (Fast Patch)
-
-```bash
-$ kunity-yamae risk "Fix null check in DamageCalculator"
-╭─ Risk Report ─────╮
-│ Score   │ 15
-│ Mode    │ fast_patch
-│ Triggers│ (none)
-╰───────────────────╯
-
-$ kunity-yamae run "Fix null check in DamageCalculator" --agent mimo
-K-Unity-Yamae Pipeline
-Task: Fix null check in DamageCalculator
-
-Step 1: Risk Classification
-  Score: 15 | Mode: fast_patch
-
-Step 2: Agent Execution
-  Completed via mimo
-
-Step 3: Guard Check
-  No issues found
-
-Step 4: Verification
-  Tier 1: compile/import - passed
-
-Step 5: Report
-  Ledger: .unity-harness/last-ledger.jsonl
-  Report: .unity-harness/reports/2026-06-11T120000Z-fix-null-check.report.md
-```
-
-### Example 2: High-Risk Rename (Migration)
-
-```bash
-$ kunity-yamae risk "Rename PlayerStats.hitpoints to health"
-╭─ Risk Report ─────╮
-│ Score   │ 80
-│ Mode    │ migration
-│ Triggers│ Serialized field/class rename
-│ Rules   │ unity.serialized-field-rename
-╰───────────────────╯
-
-$ kunity-yamae run "Rename PlayerStats.hitpoints to health" --agent claude
-...
-Step 3: Guard Check
-  [warning] serialization_rename: Field 'hitpoints' renamed to 'health'
-  without [FormerlySerializedAs]. Inspector values will be lost.
-...
-```
-
-### Example 3: Guard Diff
-
-```bash
-$ kunity-yamae guard-diff
-╭─ Diff Guard Issues ─────╮
-│ Guard          │ Severity │ Message
-│ meta_pair      │ hard     │ Asset added without .meta
-│ yaml_write     │ warning  │ YAML write to .prefab in migration mode
-╰─────────────────────────╯
-```
+- `docs/ARCHITECTURE.md`
+- `docs/ANALYSIS.md`
+- `docs/RELEASE_CHECKLIST.md`
 
 ---
 

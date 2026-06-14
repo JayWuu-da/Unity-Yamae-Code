@@ -3,6 +3,8 @@ from pathlib import Path
 
 import click
 
+from .desktop_integration import claude_init_files, codex_init_files
+
 
 @click.command("init-agent")
 @click.option(
@@ -50,11 +52,9 @@ def init_agent_cmd(
 def _target_files(target: str) -> dict[str, str]:
     files: dict[str, str] = {}
     if target in {"codex", "both"}:
-        files["AGENTS.md"] = _agents_md()
-        files[".codex/skills/k-unity-yamae/SKILL.md"] = _codex_skill()
+        files.update(codex_init_files())
     if target in {"claude", "both"}:
-        files["CLAUDE.md"] = _claude_md()
-        files[".claude/commands/kunity-yamae.md"] = _claude_command()
+        files.update(claude_init_files())
     return files
 
 
@@ -75,67 +75,3 @@ def _emit(payload: dict, as_json: bool) -> None:
         return
     for item in payload["files"]:
         click.echo(f"{item['status']}: {item['path']}")
-
-
-def _agents_md() -> str:
-    return "\n".join(
-        [
-            "# K-Unity-Yamae",
-            "",
-            "Before Unity production edits, run:",
-            "",
-            "```bash",
-            'kunity-yamae context --pretty "$TASK"',
-            'kunity-yamae risk --json "$TASK"',
-            "```",
-            "",
-            "Use `kunity-yamae inspect --editor-probe --json` only when Inspector, "
-            "prefab, scene, or listener certainty is required.",
-            "Do not directly edit Unity YAML assets or .meta files.",
-            "Do not claim Unity Editor, PlayMode, or build verification unless that "
-            "tier actually ran.",
-        ]
-    )
-
-
-def _codex_skill() -> str:
-    return "\n".join(
-        [
-            "---",
-            "name: k-unity-yamae",
-            "description: Unity production harness context, risk, guard, and "
-            "verification workflow.",
-            "---",
-            "",
-            "# K-Unity-Yamae",
-            "",
-            "Run `kunity-yamae providers doctor --json` before provider-backed work.",
-            "Run `kunity-yamae context --pretty \"$TASK\"` before editing Unity code.",
-            "Run `kunity-yamae run \"$TASK\" --plan-only --json` for a lightweight harness plan.",
-        ]
-    )
-
-
-def _claude_md() -> str:
-    return "\n".join(
-        [
-            "# K-Unity-Yamae",
-            "",
-            "Use `kunity-yamae context --pretty \"$ARGUMENTS\"` before Unity edits.",
-            "Use `kunity-yamae providers doctor --json` before provider calls.",
-            "Keep Unity batchmode and live provider checks opt-in unless risk requires them.",
-        ]
-    )
-
-
-def _claude_command() -> str:
-    return "\n".join(
-        [
-            "# kunity-yamae",
-            "",
-            "```bash",
-            'kunity-yamae context --pretty "$ARGUMENTS"',
-            'kunity-yamae run "$ARGUMENTS" --plan-only --json',
-            "```",
-        ]
-    )

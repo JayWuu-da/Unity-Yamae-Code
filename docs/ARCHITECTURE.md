@@ -56,10 +56,10 @@ K-Unity-Yamae is a thin, risk-adaptive Unity agent harness. It does not replace 
 │  One writer agent at a time                              │
 │  Optional read-only scouts for analysis                  │
 │                                                          │
-│  ┌─────────┬─────────┬─────────┬─────────┬─────────┐    │
-│  │ Codex   │ Claude  │ Gemini  │ Kimi    │ MiMo    │    │
-│  │ GPT-4o  │ Sonnet  │ 2.5     │ 128K    │ auto    │    │
-│  └─────────┴─────────┴─────────┴─────────┴─────────┘    │
+│  ┌──────────────────┬─────────────────────────────────┐ │
+│  │ Codex App/CLI    │ Claude Code Desktop/CLI          │ │
+│  │ repo skills      │ repo skills + slash command      │ │
+│  └──────────────────┴─────────────────────────────────┘ │
 └──────────────────────┬──────────────────────────────────┘
                        │
                        v
@@ -154,12 +154,12 @@ risk_score = min(100, file_risk + action_risk + semantic_unity_risk)
 
 ### Guarded Proposed Edit Flow
 
-`kunity-yamae propose-edit` is the lightweight tool-loop surface for Codex,
+`kunity-yamae propose-edit` is the lightweight tool-loop surface for Codex App,
 Claude Code, and LazyCodex-style callers. The caller supplies a unified diff
 instead of granting direct write permission.
 
 ```text
-provider/tool proposes unified diff
+desktop/CLI agent proposes unified diff
   -> git apply --check in temporary worktree
   -> apply patch in temporary worktree
   -> DiffGuard checks the resulting git diff
@@ -233,29 +233,18 @@ report keeps the static facts and marks `editor_probe.status` accordingly.
 
 ---
 
-## Agent Adapter Interface
+## Desktop/CLI Integration Contract
 
-```python
-class BaseAgent(ABC):
-    @abstractmethod
-    def execute(
-        self,
-        task: str,              # Task description
-        project_path: Path,     # Unity project root
-        risk_report: dict,      # Risk classification result
-        mode: str,              # Selected mode
-        ledger: EvidenceLedger, # Event recorder
-    ) -> dict:
-        """Execute task. Return {"status": "completed"|"error", "output": str}."""
-        pass
-```
+K-Unity-Yamae intentionally keeps model execution outside the harness. Codex App,
+Codex CLI, Claude Code Desktop, and Claude CLI read repo-local guidance and use
+the harness commands from the Unity project root.
 
-### Adding a New Agent
+The only executable harness backend is `local-patch`. It accepts a unified diff
+through `run --agent local-patch --patch-file proposed.diff --guarded-agent-patch`
+and sends that diff through Unity-aware guard evaluation before optional apply.
 
-1. Create `kunity_yamae/agents/my_agent.py`
-2. Implement `BaseAgent.execute()`
-3. Register in `kunity_yamae/agents/__init__.py` AGENT_REGISTRY
-4. Add config section in `config/default.yml`
+New model integrations should be added as desktop/CLI entrypoints or skills, not
+as in-process backend adapters in `AGENT_REGISTRY`.
 
 ---
 
@@ -317,7 +306,21 @@ K-Unity-Yamae/
 │   ├── scanner.py         # Unity project scanner
 │   ├── risk.py            # Risk classifier (regex-based)
 │   ├── modes.py           # Mode policy
-│   ├── verifier.py        # Unity batchmode runner
+│   ├── cli_run.py         # run command entrypoint
+│   ├── cli_run_config.py  # run command per-invocation config overrides
+│   ├── cli_run_payload.py # plan-only/context-only payload builder
+│   ├── cli_run_steps.py   # run command execution steps
+│   ├── run_pipeline.py    # mutating run use-case orchestration
+│   ├── verifier.py        # Unity verifier facade
+│   ├── unity_verification_contracts.py  # typed verifier contracts
+│   ├── unity_verification_plan.py     # Unity dry-run command planner
+│   ├── unity_verification_steps.py    # Unity batchmode execution steps
+│   ├── unity_verification_support.py  # Unity log/executable helpers
+│   ├── unity_profile.py               # Unity facts facade
+│   ├── unity_profile_common.py        # Shared profile file helpers
+│   ├── unity_profile_types.py         # typed Unity profile structures
+│   ├── unity_profile_graphics.py      # Graphics/importer facts
+│   ├── unity_profile_architecture.py  # Architecture naming facts
 │   ├── reporter.py        # Completion report writer
 │   ├── ledger.py          # Evidence ledger (JSONL)
 │   ├── context.py         # Context selector
@@ -331,12 +334,7 @@ K-Unity-Yamae/
 │   │   └── diff_guard.py
 │   ├── agents/            # AI agent adapters
 │   │   ├── base.py
-│   │   ├── codex_agent.py
-│   │   ├── claude_agent.py
-│   │   ├── gemini_agent.py
-│   │   ├── kimi_agent.py
-│   │   ├── glm_agent.py
-│   │   └── mimo_agent.py
+│   │   └── local_patch_agent.py
 │   └── rules/             # Rule card markdown files
 ├── config/                # Default configuration
 ├── Editor/                # Unity Editor validation script

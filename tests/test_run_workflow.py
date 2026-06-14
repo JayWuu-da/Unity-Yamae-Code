@@ -38,12 +38,8 @@ def test_run_plan_only_outputs_risk_context_guard_verify_plan(tmp_path: Path) ->
     assert payload["report_path"].endswith("last-ledger.jsonl")
 
 
-def test_run_provider_check_fails_fast_before_agent_execution(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
+def test_run_provider_check_accepts_local_patch_without_api_key(tmp_path: Path) -> None:
     create_ui_graphics_architecture_project(tmp_path)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     runner = CliRunner()
 
     result = runner.invoke(
@@ -54,14 +50,14 @@ def test_run_provider_check_fails_fast_before_agent_execution(
             "run",
             "Fix typo",
             "--agent",
-            "codex",
+            "local-patch",
             "--provider-check",
+            "--plan-only",
             "--json",
         ],
     )
 
-    assert result.exit_code == 2, result.output
+    assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
-    assert payload["status"] == "failed"
-    assert payload["failed_stage"] == "provider_check"
-    assert payload["agent_executed"] is False
+    assert payload["status"] == "planned"
+    assert payload["provider_requests"] == 0

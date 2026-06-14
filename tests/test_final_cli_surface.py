@@ -83,9 +83,11 @@ def test_install_command_writes_codex_and_claude_entrypoints(tmp_path: Path) -> 
     result = runner.invoke(main, ["--project", str(tmp_path), "install", "--codex", "--claude"])
 
     assert result.exit_code == 0, result.output
-    codex_skill = tmp_path / ".codex" / "skills" / "k-unity-yamae" / "SKILL.md"
+    codex_skill = tmp_path / ".agents" / "skills" / "k-unity-yamae" / "SKILL.md"
+    claude_skill = tmp_path / ".claude" / "skills" / "k-unity-yamae" / "SKILL.md"
     claude_command = tmp_path / ".claude" / "commands" / "kunity-yamae.md"
     assert codex_skill.exists()
+    assert claude_skill.exists()
     assert claude_command.exists()
     assert "kunity-yamae context --pretty" in codex_skill.read_text(encoding="utf-8")
     assert "kunity-yamae run" in claude_command.read_text(encoding="utf-8")
@@ -98,11 +100,12 @@ def test_install_command_defaults_to_both_entrypoints(tmp_path: Path) -> None:
     result = runner.invoke(main, ["--project", str(tmp_path), "install"])
 
     assert result.exit_code == 0, result.output
-    assert (tmp_path / ".codex" / "skills" / "k-unity-yamae" / "SKILL.md").exists()
+    assert (tmp_path / ".agents" / "skills" / "k-unity-yamae" / "SKILL.md").exists()
+    assert (tmp_path / ".claude" / "skills" / "k-unity-yamae" / "SKILL.md").exists()
     assert (tmp_path / ".claude" / "commands" / "kunity-yamae.md").exists()
 
 
-def test_providers_doctor_json_reports_codex_and_claude_without_keys(tmp_path: Path) -> None:
+def test_providers_doctor_json_reports_desktop_integrations(tmp_path: Path) -> None:
     create_project(tmp_path)
     runner = CliRunner()
 
@@ -110,42 +113,27 @@ def test_providers_doctor_json_reports_codex_and_claude_without_keys(tmp_path: P
 
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
-    assert payload["schema"] == "unity-harness.provider-doctor.v2"
-    assert payload["providers"]["codex"]["env_var"] == "OPENAI_API_KEY"
-    assert payload["providers"]["claude"]["env_var"] == "ANTHROPIC_API_KEY"
-    assert payload["providers"]["codex"]["status"] in {
-        "ready",
-        "missing_credentials",
-        "missing_sdk",
-        "disabled",
+    assert payload["schema"] == "unity-harness.desktop-integration-doctor.v1"
+    assert set(payload["integrations"]) == {
+        "codex-app",
+        "codex-cli",
+        "claude-code-desktop",
+        "claude-cli",
     }
-    assert "kunity-yamae run --agent codex" in payload["providers"]["codex"]["usage"]
+    assert "OPENAI" + "_API_KEY" not in result.output
+    assert "ANTHROPIC" + "_API_KEY" not in result.output
 
 
-def test_provider_status_reports_missing_key_and_sdk(monkeypatch) -> None:
+def test_desktop_integration_status_reports_missing_entrypoints(tmp_path: Path) -> None:
     import kunity_yamae.cli_providers as cli_providers
 
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.setattr(
-        cli_providers.importlib.util,
-        "find_spec",
-        lambda name: None if name == "anthropic" else object(),
-    )
+    create_project(tmp_path)
 
-    doctor = cli_providers.build_provider_doctor({
-        "agents": {
-            "backends": {
-                "claude": {
-                    "enabled": True,
-                    "api_key_env": "ANTHROPIC_API_KEY",
-                }
-            }
-        }
-    })
+    doctor = cli_providers.build_provider_doctor({}, project_path=tmp_path)
 
-    assert doctor["providers"]["claude"]["status"] == "missing_credentials"
-    assert "missing_credentials" in doctor["providers"]["claude"]["problems"]
-    assert "missing_sdk" in doctor["providers"]["claude"]["problems"]
+    assert doctor["integrations"]["codex-cli"]["status"] == "not_installed"
+    assert doctor["integrations"]["claude-cli"]["status"] == "not_installed"
+    assert doctor["offline_handoffs"]["local-patch"]["status"] == "ready"
 
 
 def test_context_command_is_shallow_by_default(tmp_path: Path, monkeypatch) -> None:

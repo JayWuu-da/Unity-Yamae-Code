@@ -61,6 +61,46 @@ def test_run_agent_patch_plan_routes_output_through_guarded_edit(
     assert "Bonus" not in (tmp_path / "Assets" / "PlayerStats.cs").read_text(
         encoding="utf-8"
     )
+    assert payload["provider_requests"] == 0
+
+
+def test_run_local_patch_reads_patch_file_from_cli_and_reports_no_provider_requests(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    _create_git_fixture(tmp_path)
+    patch_file = tmp_path / "proposed.diff"
+    patch_file.write_text(_safe_patch(), encoding="utf-8")
+    config_path = _write_config(tmp_path, "local-patch", "")
+    monkeypatch.chdir(tmp_path)
+    runner = CliRunner()
+
+    result = runner.invoke(
+        main,
+        [
+            "--project",
+            str(tmp_path),
+            "--config",
+            str(config_path),
+            "run",
+            "Add readonly bonus helper",
+            "--agent",
+            "local-patch",
+            "--patch-file",
+            "proposed.diff",
+            "--guarded-agent-patch",
+            "--json",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["status"] == "completed"
+    assert payload["provider_requests"] == 0
+    assert payload["agent_patch"]["status"] == "ready_to_apply"
+    assert "Bonus" not in (tmp_path / "Assets" / "PlayerStats.cs").read_text(
+        encoding="utf-8"
+    )
 
 
 def test_run_agent_patch_apply_blocks_serialized_rename(

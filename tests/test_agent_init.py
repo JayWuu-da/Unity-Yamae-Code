@@ -24,7 +24,8 @@ def test_init_agent_dry_run_lists_codex_and_claude_files(tmp_path: Path) -> None
     assert "AGENTS.md" in paths
     assert "CLAUDE.md" in paths
     assert ".claude/commands/kunity-yamae.md" in paths
-    assert ".codex/skills/k-unity-yamae/SKILL.md" in paths
+    assert ".claude/skills/k-unity-yamae/SKILL.md" in paths
+    assert ".agents/skills/k-unity-yamae/SKILL.md" in paths
 
 
 def test_init_agent_write_refuses_to_overwrite_existing_agents_md(tmp_path: Path) -> None:

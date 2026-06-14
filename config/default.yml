@@ -90,48 +90,7 @@ scanner:
   max_sensitive_results: 50
 
 agents:
-  default: mimo
+  default: local-patch
   backends:
-    codex:
+    local-patch:
       enabled: true
-      model: gpt-4o
-      api_key_env: OPENAI_API_KEY
-      temperature: 0.2
-      max_retries: 3
-    claude:
-      enabled: true
-      model: claude-sonnet-4-20250514
-      api_key_env: ANTHROPIC_API_KEY
-      temperature: 0.2
-      max_tokens: 16384
-      max_retries: 3
-    gemini:
-      enabled: true
-      model: gemini-2.5-flash
-      api_key_env: GOOGLE_API_KEY
-      temperature: 0.2
-      max_retries: 3
-    kimi:
-      enabled: true
-      model: moonshot-v1-128k
-      api_key_env: KIMI_API_KEY
-      endpoint: "https://api.moonshot.cn/v1/chat/completions"
-      temperature: 0.2
-      timeout: 120
-      max_retries: 3
-    glm:
-      enabled: true
-      model: glm-4-plus
-      api_key_env: ZHIPU_API_KEY
-      endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-      temperature: 0.2
-      timeout: 120
-      max_retries: 3
-    mimo:
-      enabled: true
-      model: mimo-auto
-      api_key_env: MIMO_API_KEY
-      endpoint: "https://api.mimo.ai/v1/chat/completions"
-      temperature: 0.2
-      timeout: 120
-      max_retries: 3
