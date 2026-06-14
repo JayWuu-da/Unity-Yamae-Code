@@ -35,6 +35,7 @@ class ContextSelector:
             "relevant_files": [],
             "summaries": [],
             "unity_facts": self._select_unity_facts(task),
+            "fact_limits": self._fact_limits(),
             "manual_checks": self._manual_checks(task, mode),
             "project_memory": self._load_nearest_memory(task),
         }
@@ -99,6 +100,33 @@ class ContextSelector:
         if safety:
             selected["runtime_safety"] = safety
         return selected
+
+    def _fact_limits(self) -> dict[str, str | list[str]]:
+        return {
+            "source": (
+                "Only discovered facts and discovered files from the current Unity project "
+                "profile, static scan, context selection, and task-focused file reads."
+            ),
+            "unknown_policy": (
+                "If a project file, prefab, scene, listener, generated source, or convention "
+                "is not discovered, report it as unknown instead of inferring it."
+            ),
+            "editor_probe_required_for": [
+                (
+                    "Run `kunity-yamae inspect --editor-probe --json` or "
+                    "equivalent Unity evidence for:"
+                ),
+                "Inspector object references",
+                "prefab override intent",
+                "persistent listener target validity",
+                "missing serialized reference certainty",
+                "PlayMode, Game View, build, or visual behavior claims",
+            ],
+            "no_claim_without_evidence": (
+                "Do not claim Unity Editor, PlayMode, build, Game View, or Inspector "
+                "verification unless that tier actually ran and produced evidence."
+            ),
+        }
 
     def _manual_checks(self, task: str, mode: str) -> list[str]:
         task_text = normalize_task_text(task)

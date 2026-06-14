@@ -2,12 +2,23 @@
 
 ## Local Quality Gate
 
-Run before tagging or handing the harness to a Unity production repo:
+Run before tagging or handing the harness to an AI agent for a Unity production repo:
 
 ```bash
 python -m pytest -q
 python -m ruff check .
+python -m kunity_yamae.cli release-check --json
 ```
+
+## Agent-Facing Copy Checks
+
+`release-check --json` must report `agent_facing_copy` with all checks passing:
+
+- English and Korean README files describe the AI-agent workflow from git URL to target Unity project root.
+- Codex and Claude entrypoints state that context contains discovered facts and discovered files only.
+- Static scanner limits are documented as signals, not Inspector proof.
+- Primary docs avoid path placeholders and subcommand-level project options.
+- Model-backend credential setup language and scratch planning/evidence artifacts are absent from tracked files.
 
 ## Harness Smoke Checks
 

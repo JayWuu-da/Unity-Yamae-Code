@@ -20,6 +20,9 @@ kunity-yamae --project <unity-project> run "$TASK" --plan-only --verify-dry-run 
 Rules:
 - Use Windows PowerShell command syntax.
 - Keep generated assistant entrypoints aligned with `kunity_yamae/desktop_integration.py`.
+- Treat scan/context output as discovered facts and discovered files found in the current Unity project.
+- Report missing or undiscovered Unity project structure as unknown instead of guessing.
+- Use `kunity-yamae inspect --editor-probe --json` before claiming Inspector, prefab, scene, or listener certainty.
 - Prefer unified diffs for model-produced patches and route them through `--guarded-agent-patch`.
 - Do not directly edit Unity YAML assets or `.meta` files.
 - Do not claim Unity Editor, PlayMode, build, or Inspector verification unless that tier actually ran and produced evidence.

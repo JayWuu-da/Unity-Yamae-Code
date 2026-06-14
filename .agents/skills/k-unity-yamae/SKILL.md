@@ -8,6 +8,12 @@ description: Unity harness workflow for Codex App and Codex CLI on Windows.
 Use this skill when Codex App or Codex CLI is asked to inspect, plan, edit,
 or verify a Unity project that has K-Unity-Yamae installed.
 
+This is an AI-agent Unity harness skill, not a human-facing CLI tutorial.
+Use only discovered facts and discovered files found in the current Unity project.
+If a file, prefab, scene, listener, or Inspector relationship is not found,
+report it as unknown until `kunity-yamae inspect --editor-probe --json` or
+equivalent Unity evidence runs.
+
 Run these from Windows PowerShell at the Unity project root:
 
 ```powershell

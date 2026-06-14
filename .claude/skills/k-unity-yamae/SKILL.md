@@ -7,6 +7,13 @@ description: Unity harness workflow for Claude Code Desktop and Claude CLI.
 
 Use this skill for Unity work in Claude Code Desktop or Claude CLI when this
 project has K-Unity-Yamae installed.
+This primary Claude skill is the preferred Claude surface; the slash command
+is a compatibility wrapper.
+
+Use only discovered facts and discovered files found in the current Unity
+project. If a file, prefab, scene, listener, or Inspector relationship is not
+found, report it as unknown until `kunity-yamae inspect --editor-probe --json`
+or equivalent Unity evidence runs.
 
 Windows setup expectations:
 - Run commands in Windows PowerShell.

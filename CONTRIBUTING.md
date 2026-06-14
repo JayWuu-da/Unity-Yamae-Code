@@ -17,9 +17,13 @@ python -m kunity_yamae.cli release-check --json
 
 Direct pushes to `master` are blocked. Pull requests require review, passing CI, and code owner review for owned paths.
 
+## Agent Artifact Hygiene
+
+Do not commit `.omo/`, `.omx/`, `plans/`, `evidence/`, local scratch drafts, or private Unity project data unless the user explicitly asks for that artifact. The repository should stay focused on the AI-agent Unity harness source, generated entrypoint templates, tests, and maintained docs.
+
 ## Release Source
 
-GitHub Releases are the official installation source for users. Source installs are for maintainers and contributors working on the project.
+GitHub Releases and source installs are installation sources for agents and maintainers. A fresh agent can clone the git URL, run `python -m pip install -e .`, and then operate from the target Unity project root.
 
 ## Security
 

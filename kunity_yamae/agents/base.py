@@ -96,6 +96,9 @@ class BaseAgent(ABC):
         if ctx.get("unity_facts"):
             prompt_parts.append(f"\n## Unity Facts\n{ctx['unity_facts']}")
 
+        if ctx.get("fact_limits"):
+            prompt_parts.append(f"\n## Fact Limits\n{ctx['fact_limits']}")
+
         if ctx.get("manual_checks"):
             prompt_parts.append(
                 "\n## Manual Checks\n" + "\n".join(f"- {check}" for check in ctx["manual_checks"])

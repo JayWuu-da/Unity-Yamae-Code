@@ -6,12 +6,12 @@
 
 | Theme | Result |
 | --- | --- |
-| Codex and Claude usability | `install`, `init-agent`, project-local skills, and CLI entrypoints are available |
+| Codex and Claude usability | `install`, `init-agent`, project-local skills, and agent command entrypoints are available |
 | LazyCodex-style handoff | `local-patch` and `run --patch-file proposed.diff --guarded-agent-patch` support patch-first guarded execution |
 | Unity production context | Rule cards, risk model, context pack, UI/graphics/architecture facts, and manual check prompts are wired |
 | Editor inspection | Probe source can emit inspector listeners, missing references, prefab overrides, and UI component state |
 | Desktop integration diagnostics | `providers doctor` reports Codex/Claude desktop and CLI entrypoint readiness through local file checks |
-| Release operability | `release-check --json` reports package data and required quality gates |
+| Release operability | `release-check --json` reports package data, agent-facing copy checks, and required quality gates |
 
 ## Remaining High-Value Work
 
@@ -23,13 +23,12 @@
 
 ## Recommended Operating Mode
 
-For live-service Unity projects, keep the default loop lightweight:
+For live-service Unity projects, AI agents should run the lightweight loop from the target Unity project root:
 
 ```bash
-kunity-yamae scan
 kunity-yamae run "task" --plan-only --verify-dry-run --editor-probe
 kunity-yamae run "task" --agent local-patch --patch-file proposed.diff --guarded-agent-patch
 kunity-yamae verify --dry-run
 ```
 
-Only run Unity batchmode compile, EditMode, PlayMode, or build validation when the risk score, touched files, or release gate requires it.
+Only run Unity batchmode compile, EditMode, PlayMode, or build validation when the risk score, touched files, or release gate requires it. Static context is discovered facts only; missing project-specific wiring remains unknown until stronger evidence exists.

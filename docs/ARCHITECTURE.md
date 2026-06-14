@@ -2,11 +2,11 @@
 
 ## System Overview
 
-K-Unity-Yamae is a thin, risk-adaptive Unity agent harness. It does not replace AI coding agents; it wraps them with Unity-specific safety guardrails.
+K-Unity-Yamae is an AI-agent Unity harness. It does not replace AI coding agents; Codex App/CLI and Claude Code Desktop/CLI use it from the target Unity project root for Unity-specific safety guardrails.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    User Task                             │
+│        AI agent in the target Unity project root          │
 │              "Rename PlayerStats.hitpoints to health"    │
 └──────────────────────┬──────────────────────────────────┘
                        │
@@ -19,7 +19,7 @@ K-Unity-Yamae is a thin, risk-adaptive Unity agent harness. It does not replace 
                        v
 ┌──────────────────────────────────────────────────────────┐
 │              Unity Project Scanner                        │
-│  Detect: version, packages, assemblies, scenes, tests    │
+│  Detect discovered static facts and file signals          │
 │  Cache: .unity-harness/project-profile.json              │
 └──────────────────────┬──────────────────────────────────┘
                        │
@@ -213,7 +213,7 @@ build validation unless the corresponding Unity command actually ran.
 ## Unity Facts Coverage
 
 The default scanner is intentionally lightweight and does not require opening
-Unity. It reads project files to extract:
+Unity. It reads discovered static facts and signals from project files:
 
 - UI and hierarchy facts: scene count, prefab count, EventSystem and
   GraphicRaycaster counts, button-like prefab wiring, CanvasGroup presence, and
@@ -230,6 +230,10 @@ Unity batchmode `-executeMethod` probe. That tier can report Inspector-level
 facts such as persistent listener targets, prefab override counts, and missing
 serialized object references. If Unity is unavailable or the probe fails, the
 report keeps the static facts and marks `editor_probe.status` accordingly.
+
+Facts that are not discovered in the current Unity project root remain unknown.
+Naming patterns, static YAML/text markers, and cached profile data are not
+project ownership proof and are not Inspector proof.
 
 ---
 
