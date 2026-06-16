@@ -20,7 +20,7 @@ def scan_cmd(ctx, deep: bool, write_memory: bool, as_json: bool) -> None:
     scanner = UnityProjectScanner(project_path, config)
     profile = scanner.scan(deep=deep)
 
-    output_path = project_path / ".unity-harness" / "project-profile.json"
+    output_path = project_path / ".unity-harness" / "cache" / "project-profile.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as file:
         json.dump(profile, file, indent=2)

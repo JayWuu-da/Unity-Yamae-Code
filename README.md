@@ -55,9 +55,14 @@ These commands are deterministic primitives for the AI agent. They should be run
 
 ```powershell
 kunity-yamae providers doctor --json
+kunity-yamae tools list --json
+kunity-yamae tools list --schema v2 --json
 kunity-yamae context --pretty "Fix prefab button raycast"
 kunity-yamae risk --json "Fix prefab button raycast"
 kunity-yamae run "Fix prefab button raycast" --plan-only --verify-dry-run --json
+kunity-yamae orchestrate "Fix prefab button raycast" --plan-only --verify-dry-run --json
+kunity-yamae orchestrate "Fix prefab button raycast" --execute-loop --schema v2 --verify-dry-run --json
+kunity-yamae verify --dry-run --quality-gate --json
 kunity-yamae inspect --json
 kunity-yamae inspect --editor-probe --json
 kunity-yamae install --codex --claude
@@ -87,6 +92,15 @@ kunity-yamae run "Fix prefab button raycast" --agent local-patch --patch-file pr
 - scenes, prefabs, and selected serialized text signals
 - protected/generated paths
 - UI, graphics, VFX, and architecture naming signals
+
+The shared inventory is a repo-neutral list of discovered files, command/tool capabilities, and bounded generic semantic signals. It is suitable for planning and risk triage, but static scan and plan output do not prove Inspector object references, prefab override intent, persistent listener targets, PlayMode behavior, Game View state, or build success.
+
+`tools --schema v2` and `orchestrate --execute-loop --schema v2` are explicit
+agent-runtime surfaces. They add structured permissions, evidence tiers,
+observability events, session memory artifacts, and Editor/Player adapter status
+without making source or Unity asset changes. The Player adapter is disabled by
+default, reports `unavailable`, and is reserved for explicit development-build
+bridges only.
 
 These are discovered static facts. Missing files, unrecognized project conventions, private runtime wiring, generated code that is not present, and Inspector-only relationships remain unknown until an agent runs the right Unity evidence tier.
 
@@ -138,6 +152,8 @@ python -m kunity_yamae.cli release-check --json
 ```
 
 `release-check --json` validates package data, desktop/CLI entrypoints, local-patch availability, and agent-facing copy contracts. It must stay free of model-backend credential setup language and must not treat scratch planning or evidence artifacts as tracked project files.
+
+Harness-generated caches and reports must stay under `.unity-harness/cache/`, `.unity-harness/reports/`, or `.unity-harness/last-*`. Scratch planning/evidence artifacts such as `.omo/`, `.omx/`, `plans/`, and `evidence/` are local work receipts and must not become tracked project artifacts.
 
 ## License
 

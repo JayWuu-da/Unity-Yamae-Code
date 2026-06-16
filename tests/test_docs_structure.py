@@ -92,3 +92,23 @@ def test_readme_is_concise_and_delegates_deep_details() -> None:
     assert "## Adding a Custom Agent" not in readme
     assert "class CustomAgent" not in readme
     assert "docs/ARCHITECTURE.md" in readme
+
+
+def test_task10_docs_capture_shared_inventory_and_static_signal_limits() -> None:
+    docs = "\n".join(
+        [
+            Path("README.md").read_text(encoding="utf-8"),
+            Path("README_KO.md").read_text(encoding="utf-8"),
+            Path("docs/ARCHITECTURE.md").read_text(encoding="utf-8"),
+            Path("docs/RELEASE_CHECKLIST.md").read_text(encoding="utf-8"),
+        ]
+    )
+    docs_lower = docs.lower()
+
+    assert "shared inventory" in docs_lower
+    assert "bounded generic semantic signals" in docs_lower
+    assert "tools list --json" in docs_lower
+    assert "orchestrate" in docs_lower
+    assert ".unity-harness/cache/" in docs
+    assert "do not prove Inspector object references" in docs
+    assert "do not claim unity editor, playmode, build, or inspector verification" in docs_lower

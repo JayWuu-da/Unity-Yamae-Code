@@ -23,9 +23,9 @@ def test_graphics_facts_include_audio_model_sprite_importers(tmp_path: Path) -> 
     profile = UnityProjectScanner(tmp_path, config).scan(deep=True)
     graphics = profile["graphics_defaults"]
 
-    assert graphics["sprite_import_settings"][0]["path"] == "Assets/Textures/Hero.png.meta"
+    assert graphics["sprite_import_settings"][0]["path"] == "Assets/Textures/SampleTexture.png.meta"
     assert graphics["sprite_import_settings"][0]["sprite_mode"] == "Single"
     assert graphics["audio_import_settings"][0]["path"] == "Assets/Audio/Click.wav.meta"
     assert graphics["audio_import_settings"][0]["load_type"] == "CompressedInMemory"
-    assert graphics["model_import_settings"][0]["path"] == "Assets/Models/Hero.fbx.meta"
+    assert graphics["model_import_settings"][0]["path"] == "Assets/Models/SampleModel.fbx.meta"
     assert graphics["model_import_settings"][0]["mesh_compression"] == "Medium"

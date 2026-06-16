@@ -3,14 +3,17 @@
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
+
+from ..constants import GENERATED_FOLDERS
 
 
 class MetaGuard:
-    def __init__(self, project_path: Path, config: dict):
+    def __init__(self, project_path: Path, config: dict[str, Any]):
         self.project_path = project_path
         self.config = config
 
-    def check_from_git_status(self) -> list[dict]:
+    def check_from_git_status(self) -> list[dict[str, Any]]:
         """Check git status for .meta pairing issues."""
         issues = []
         status = self._get_git_status()
@@ -23,7 +26,7 @@ class MetaGuard:
         metas_deleted = []
 
         for file_path, change_type in status.items():
-            if not self._is_under_assets(file_path):
+            if not self._is_unity_content_path(file_path):
                 continue
             if self._is_generated(file_path):
                 continue
@@ -94,17 +97,19 @@ class MetaGuard:
         return [
             file_path
             for file_path in status
-            if self._is_under_assets(file_path) and not self._is_generated(file_path)
+            if self._is_unity_content_path(file_path) and not self._is_generated(file_path)
         ]
 
-    def check(self, changed_files: list[str]) -> list[dict]:
+    def check(self, changed_files: list[str]) -> list[dict[str, Any]]:
         """Check changed files for .meta pairing (fallback without git status)."""
         issues = []
         metas = [f for f in changed_files if f.endswith(".meta")]
         assets = [
             f
             for f in changed_files
-            if not f.endswith(".meta") and self._is_under_assets(f) and not self._is_generated(f)
+            if not f.endswith(".meta")
+            and self._is_unity_content_path(f)
+            and not self._is_generated(f)
         ]
 
         for asset in assets:
@@ -133,7 +138,7 @@ class MetaGuard:
 
         return issues
 
-    def check_guid_continuity(self, diff_content: str) -> list[dict]:
+    def check_guid_continuity(self, diff_content: str) -> list[dict[str, Any]]:
         """Check if GUIDs changed in .meta files within a diff."""
         issues = []
         blocks = re.split(r"^diff --git", diff_content, flags=re.MULTILINE)
@@ -203,10 +208,10 @@ class MetaGuard:
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return None
 
-    def _is_under_assets(self, path: str) -> bool:
-        return path.startswith("Assets/") or path.startswith("Assets\\")
+    def _is_unity_content_path(self, path: str) -> bool:
+        normalized = path.replace("\\", "/")
+        return normalized.startswith("Assets/") or normalized.startswith("Packages/")
 
     def _is_generated(self, path: str) -> bool:
         parts = Path(path).parts
-        generated = {"Library", "Temp", "Obj", "Logs", "Builds", "UserSettings"}
-        return bool(generated & set(parts))
+        return bool(GENERATED_FOLDERS & set(parts))

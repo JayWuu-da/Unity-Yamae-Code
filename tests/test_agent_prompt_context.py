@@ -24,8 +24,8 @@ def create_project(project_path: Path) -> None:
         encoding="utf-8",
     )
     (project_path / "Assets" / "UI").mkdir(parents=True)
-    (project_path / "Assets" / "UI" / "ShopButton.prefab").write_text(
-        "GameObject:\n  m_Name: ShopButton\nCanvas:\nGraphicRaycaster:\nm_OnClick:\n",
+    (project_path / "Assets" / "UI" / "SampleButton.prefab").write_text(
+        "GameObject:\n  m_Name: SampleButton\nCanvas:\nGraphicRaycaster:\nm_OnClick:\n",
         encoding="utf-8",
     )
 

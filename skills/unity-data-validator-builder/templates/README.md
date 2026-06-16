@@ -2,13 +2,14 @@
 
 Domain: `{{DOMAIN}}`
 
-This validator reads Unity table data from the project path recorded during scaffold:
+This validator reads Unity table data from the project path supplied at runtime:
 
 ```text
 {{PROJECT_PATH}}
 ```
 
-Project-specific rules live in `profiles/{{DOMAIN}}.yaml`.
+Configure project-specific table roots, table files, sections, fields, and relationships in
+`profiles/{{DOMAIN}}.yaml` before running the validator.
 Reports are emitted as Markdown and JSON under `reports/`.
 
 Run:

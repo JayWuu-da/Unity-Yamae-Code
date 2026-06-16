@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+from typing import Any
 
 from kunity_yamae.scanner import UnityProjectScanner
 
 
-def make_config() -> dict:
+def make_config() -> dict[str, Any]:
     return {
         "protected_files": {
             "block_direct_write": ["Assets/**/*.meta"],
@@ -41,7 +42,7 @@ def write_project_files(project_path: Path) -> None:
         encoding="utf-8",
     )
     (project_path / "Assets" / "UI").mkdir(parents=True)
-    (project_path / "Assets" / "UI" / "MainMenu.prefab").write_text(
+    (project_path / "Assets" / "UI" / "SamplePanel.prefab").write_text(
         "\n".join(
             [
                 "%YAML 1.1",
@@ -69,7 +70,7 @@ def write_project_files(project_path: Path) -> None:
         "GameObject:\n  m_Name: EventSystem\n", encoding="utf-8"
     )
     (project_path / "Assets" / "Textures").mkdir()
-    (project_path / "Assets" / "Textures" / "Hero.png.meta").write_text(
+    (project_path / "Assets" / "Textures" / "SampleTexture.png.meta").write_text(
         "\n".join(
             [
                 "TextureImporter:",

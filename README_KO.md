@@ -55,9 +55,11 @@ Claude Code Desktop/CLI와 Codex CLI에서는 PowerShell 및 Git for Windows 기
 
 ```powershell
 kunity-yamae providers doctor --json
+kunity-yamae tools list --json
 kunity-yamae context --pretty "Fix prefab button raycast"
 kunity-yamae risk --json "Fix prefab button raycast"
 kunity-yamae run "Fix prefab button raycast" --plan-only --verify-dry-run --json
+kunity-yamae orchestrate "Fix prefab button raycast" --plan-only --verify-dry-run --json
 kunity-yamae inspect --json
 kunity-yamae inspect --editor-probe --json
 kunity-yamae install --codex --claude
@@ -87,6 +89,8 @@ kunity-yamae run "Fix prefab button raycast" --agent local-patch --patch-file pr
 - scene, prefab, 일부 serialized text 신호
 - 보호 대상/생성물 경로
 - UI, graphics, VFX, architecture naming 신호
+
+shared inventory는 발견된 파일, 명령/도구 capability, bounded generic semantic signals를 묶은 저장소 중립 목록입니다. 이는 계획과 위험도 판단에 쓰는 정적 신호이며 Inspector object reference, prefab override 의도, persistent listener target, PlayMode 동작, Game View 상태, build 성공을 증명하지 않습니다.
 
 프로젝트마다 구조, 네이밍, prefab 구성, generated code 위치, 런타임 wiring이 다릅니다. 파일로 발견되지 않은 내용은 unknown으로 남겨야 하며, 에이전트는 모르는 내용을 추측해서 확정적으로 말하면 안 됩니다.
 
@@ -128,5 +132,7 @@ python -m kunity_yamae.cli release-check --json
 ```
 
 `release-check --json`은 패키지 데이터, Codex/Claude 엔트리포인트, local-patch 준비 상태, AI 에이전트용 문서 계약을 확인합니다. 모델 백엔드 credential 설정 문구나 `.omo`, `plans`, `evidence` 같은 작업 산출물이 프로젝트 산출물처럼 올라가면 안 됩니다.
+
+하네스가 생성한 cache/report는 `.unity-harness/cache/`, `.unity-harness/reports/`, `.unity-harness/last-*` 아래에만 남겨야 합니다. `.omo/`, `.omx/`, `plans/`, `evidence/` 같은 scratch planning/evidence artifacts는 로컬 작업 영수증이며 추적되는 프로젝트 산출물이 아닙니다.
 
 작은 수정은 빠르게, 위험한 변경은 엄격하게, 검증 보고는 실제 증거에 맞게 처리하는 것이 K-Unity-Yamae의 목표입니다.

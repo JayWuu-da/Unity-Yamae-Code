@@ -41,16 +41,16 @@ def create_project(project_path: Path) -> None:
                 "GraphicRaycaster:",
                 "EventSystem:",
                 "PrefabInstance:",
-                "  m_SourcePrefab: {fileID: 100100000, guid: shopbutton, type: 3}",
+                "  m_SourcePrefab: {fileID: 100100000, guid: samplebutton, type: 3}",
             ]
         ),
         encoding="utf-8",
     )
-    (project_path / "Assets" / "UI" / "ShopButton.prefab").write_text(
+    (project_path / "Assets" / "UI" / "SampleButton.prefab").write_text(
         "\n".join(
             [
                 "GameObject:",
-                "  m_Name: ShopButton",
+                "  m_Name: SampleButton",
                 "MonoBehaviour:",
                 "  m_Script: {fileID: 11500000, guid: 00000000000000000000000000000000, type: 3}",
                 "Canvas:",
@@ -60,7 +60,7 @@ def create_project(project_path: Path) -> None:
         ),
         encoding="utf-8",
     )
-    (project_path / "Assets" / "Art" / "Hero.png.meta").write_text(
+    (project_path / "Assets" / "Art" / "SampleTexture.png.meta").write_text(
         "\n".join(
             [
                 "TextureImporter:",

@@ -18,16 +18,16 @@ def create_ui_project(project_path: Path) -> None:
         encoding="utf-8",
     )
     (project_path / "Assets" / "UI").mkdir(parents=True)
-    (project_path / "Assets" / "UI" / "ShopButton.prefab").write_text(
-        "GameObject:\n  m_Name: ShopButton\nCanvas:\nGraphicRaycaster:\nm_OnClick:\n",
+    (project_path / "Assets" / "UI" / "SampleButton.prefab").write_text(
+        "GameObject:\n  m_Name: SampleButton\nCanvas:\nGraphicRaycaster:\nm_OnClick:\n",
         encoding="utf-8",
     )
     (project_path / "Assets" / "Scripts").mkdir(parents=True)
-    (project_path / "Assets" / "Scripts" / "ShopPresenter.cs").write_text(
+    (project_path / "Assets" / "Scripts" / "SamplePresenter.cs").write_text(
         "\n".join(
             [
                 "using UnityEngine;",
-                "public sealed class ShopPresenter : MonoBehaviour",
+                "public sealed class SamplePresenter : MonoBehaviour",
                 "{",
                 "    private void Reset() {}",
                 "}",
@@ -81,11 +81,11 @@ def test_context_pack_selects_execution_path_rule_for_ui_route_task(tmp_path: Pa
     config = load_config(tmp_path)
     UnityProjectScanner(tmp_path, config).scan(deep=True)
     risk_report = RiskClassifier(config).classify(
-        "Fix the shop popup button route and controller reset path", {}
+        "Fix the sample popup button route and controller reset path", {}
     )
 
     context = ContextSelector(tmp_path, config).select(
-        "Fix the shop popup button route and controller reset path",
+        "Fix the sample popup button route and controller reset path",
         risk_report,
         "standard",
     )
@@ -98,16 +98,16 @@ def test_context_pack_selects_execution_path_rule_for_ui_route_task(tmp_path: Pa
     )
 
 
-def test_context_pack_selects_data_contract_rule_for_payload_task(tmp_path: Path) -> None:
+def test_context_pack_selects_data_contract_rule_for_output_shape_task(tmp_path: Path) -> None:
     create_ui_project(tmp_path)
     config = load_config(tmp_path)
     UnityProjectScanner(tmp_path, config).scan(deep=True)
     risk_report = RiskClassifier(config).classify(
-        "Verify reward table localization and final packet payload contract", {}
+        "Verify source table display keys and final output shape contract", {}
     )
 
     context = ContextSelector(tmp_path, config).select(
-        "Verify reward table localization and final packet payload contract",
+        "Verify source table display keys and final output shape contract",
         risk_report,
         "standard",
     )
@@ -115,8 +115,8 @@ def test_context_pack_selects_data_contract_rule_for_payload_task(tmp_path: Path
     assert "unity.data-contracts" in context["rule_cards"]
     assert "unity.execution-path" not in context["rule_cards"]
     assert (
-        "Verify source table rows, localization keys, displayed text, request/response DTOs, "
-        "final payload shape, merge rules, and response apply path."
+        "Verify source rows, display keys, request/response DTOs, "
+        "output shape, merge rules, and response apply path."
         in context["manual_checks"]
     )
 
@@ -129,7 +129,7 @@ def test_risk_classifier_does_not_treat_controller_reset_path_as_lifecycle(
     UnityProjectScanner(tmp_path, config).scan(deep=True)
 
     risk_report = RiskClassifier(config).classify(
-        "Fix the shop popup button route and controller reset path",
+        "Fix the sample popup button route and controller reset path",
         {},
     )
 
@@ -146,11 +146,11 @@ def test_risk_classifier_matches_data_contract_plural_and_camel_case(
     config = load_config(tmp_path)
 
     plural_report = RiskClassifier(config).classify("Fix balance tables", {})
-    camel_report = RiskClassifier(config).classify("Fix RewardTable values", {})
+    camel_report = RiskClassifier(config).classify("Fix SourceTable values", {})
 
-    assert "Unity data contract/payload" in plural_report["triggers"]
+    assert "Unity data contract" in plural_report["triggers"]
     assert "unity.data-contracts" in plural_report["required_rule_cards"]
-    assert "Unity data contract/payload" in camel_report["triggers"]
+    assert "Unity data contract" in camel_report["triggers"]
     assert "unity.data-contracts" in camel_report["required_rule_cards"]
 
 
@@ -160,10 +160,10 @@ def test_context_pack_matches_execution_path_for_camel_case_popup(
     create_ui_project(tmp_path)
     config = load_config(tmp_path)
     UnityProjectScanner(tmp_path, config).scan(deep=True)
-    risk_report = RiskClassifier(config).classify("Fix OpenShopPopup", {})
+    risk_report = RiskClassifier(config).classify("Fix OpenSamplePopup", {})
 
     context = ContextSelector(tmp_path, config).select(
-        "Fix OpenShopPopup",
+        "Fix OpenSamplePopup",
         risk_report,
         risk_report["mode"],
     )
@@ -179,16 +179,16 @@ def test_context_pack_includes_manual_checks_for_plural_contract_terms(
     create_ui_project(tmp_path)
     config = load_config(tmp_path)
     UnityProjectScanner(tmp_path, config).scan(deep=True)
-    risk_report = RiskClassifier(config).classify("Audit payloads responses and packets", {})
+    risk_report = RiskClassifier(config).classify("Audit output shapes and responses", {})
 
     context = ContextSelector(tmp_path, config).select(
-        "Audit payloads responses and packets",
+        "Audit output shapes and responses",
         risk_report,
         risk_report["mode"],
     )
 
     assert "unity.data-contracts" in context["rule_cards"]
-    assert any("final payload shape" in check for check in context["manual_checks"])
+    assert any("output shape" in check for check in context["manual_checks"])
 
 
 def test_risk_classifier_matches_common_unity_api_keyword_variants(
@@ -198,10 +198,10 @@ def test_risk_classifier_matches_common_unity_api_keyword_variants(
     config = load_config(tmp_path)
 
     addressables_report = RiskClassifier(config).classify(
-        "Fix Addressables path for ability VFX",
+        "Fix Addressables path for runtime asset",
         {},
     )
-    buttons_report = RiskClassifier(config).classify("Fix shop buttons", {})
+    buttons_report = RiskClassifier(config).classify("Fix sample buttons", {})
     event_system_report = RiskClassifier(config).classify(
         "Fix EventSystem configuration",
         {},
@@ -223,7 +223,7 @@ def test_context_pack_includes_ui_facts_for_common_ui_api_variants(
     UnityProjectScanner(tmp_path, config).scan(deep=True)
 
     for task in (
-        "Fix shop buttons",
+        "Fix sample buttons",
         "Fix EventSystem configuration",
         "Fix RectTransform anchors",
     ):
@@ -251,18 +251,18 @@ def test_context_pack_matches_camel_case_csharp_file_names(tmp_path: Path) -> No
     config = load_config(tmp_path)
     UnityProjectScanner(tmp_path, config).scan(deep=True)
     risk_report = RiskClassifier(config).classify(
-        "Fix ShopPresenter button onClick raycast issue",
+        "Fix SamplePresenter button onClick raycast issue",
         {},
     )
 
     context = ContextSelector(tmp_path, config).select(
-        "Fix ShopPresenter button onClick raycast issue",
+        "Fix SamplePresenter button onClick raycast issue",
         risk_report,
         risk_report["mode"],
     )
 
-    assert "Assets/Scripts/ShopPresenter.cs" in context["relevant_files"]
-    assert context["summaries"][0]["path"] == "Assets/Scripts/ShopPresenter.cs"
+    assert "Assets/Scripts/SamplePresenter.cs" in context["relevant_files"]
+    assert context["summaries"][0]["path"] == "Assets/Scripts/SamplePresenter.cs"
 
 
 def test_context_pack_mode_override_controls_manual_inspection_check(
@@ -271,10 +271,10 @@ def test_context_pack_mode_override_controls_manual_inspection_check(
     create_ui_project(tmp_path)
     config = load_config(tmp_path)
     UnityProjectScanner(tmp_path, config).scan(deep=True)
-    risk_report = RiskClassifier(config).classify("Fix typo in ShopPresenter", {})
+    risk_report = RiskClassifier(config).classify("Fix typo in SamplePresenter", {})
 
     context = ContextSelector(tmp_path, config).select(
-        "Fix typo in ShopPresenter",
+        "Fix typo in SamplePresenter",
         risk_report,
         "asset_safe",
     )

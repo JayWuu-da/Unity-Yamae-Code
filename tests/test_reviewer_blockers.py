@@ -18,8 +18,8 @@ def create_bom_project(project_path: Path) -> None:
         encoding="utf-8-sig",
     )
     (project_path / "Assets" / "UI").mkdir(parents=True)
-    (project_path / "Assets" / "UI" / "Shop.prefab").write_text(
-        "GameObject:\n  m_Name: Shop\nCanvas:\nGraphicRaycaster:\nm_OnClick:\n",
+    (project_path / "Assets" / "UI" / "SamplePanel.prefab").write_text(
+        "GameObject:\n  m_Name: SamplePanel\nCanvas:\nGraphicRaycaster:\nm_OnClick:\n",
         encoding="utf-8",
     )
 

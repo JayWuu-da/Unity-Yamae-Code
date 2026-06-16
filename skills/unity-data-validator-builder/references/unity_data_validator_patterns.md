@@ -10,7 +10,7 @@ Use one profile per validation domain. A profile should describe:
 - required fields,
 - relationship checks,
 - sentinel values to skip,
-- optional payload-shape notes.
+- optional output-shape notes.
 
 ## Filesystem Pattern
 - Read the Unity project path.

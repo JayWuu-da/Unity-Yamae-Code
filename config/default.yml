@@ -28,12 +28,23 @@ protected_files:
     - "Assets/**/*.anim"
     - "Assets/**/*.overrideController"
     - "Assets/**/*.playable"
+    - "Packages/**/*.meta"
+    - "Packages/**/*.unity"
+    - "Packages/**/*.prefab"
+    - "Packages/**/*.controller"
+    - "Packages/**/*.anim"
+    - "Packages/**/*.overrideController"
+    - "Packages/**/*.playable"
   escalate_direct_write:
     - "Assets/**/*.asset"
     - "Assets/**/*.asmdef"
     - "Assets/**/*.asmref"
+    - "Packages/**/*.asset"
+    - "Packages/**/*.asmdef"
+    - "Packages/**/*.asmref"
     - "ProjectSettings/**"
     - "Packages/manifest.json"
+    - "Packages/packages-lock.json"
   never_touch:
     - "Library/**"
     - "Temp/**"
@@ -53,8 +64,18 @@ file_risk_scores:
   "Assets/**/*.asset": { base: 70, max: 70 }
   "Assets/**/*.controller": { base: 75, max: 75 }
   "Assets/**/*.anim": { base: 75, max: 75 }
+  "Packages/**/*.cs": { base: 10, max: 45 }
+  "Packages/**/*.asmdef": { base: 55, max: 55 }
+  "Packages/**/*.asmref": { base: 55, max: 55 }
+  "Packages/**/*.meta": { base: 80, max: 80 }
+  "Packages/**/*.unity": { base: 85, max: 85 }
+  "Packages/**/*.prefab": { base: 85, max: 85 }
+  "Packages/**/*.asset": { base: 70, max: 70 }
+  "Packages/**/*.controller": { base: 75, max: 75 }
+  "Packages/**/*.anim": { base: 75, max: 75 }
   "ProjectSettings/**": { base: 80, max: 80 }
   "Packages/manifest.json": { base: 75, max: 75 }
+  "Packages/packages-lock.json": { base: 75, max: 75 }
 
 verification:
   compile_on_standard: true
@@ -94,3 +115,10 @@ agents:
   backends:
     local-patch:
       enabled: true
+
+player_adapter:
+  enabled: false
+  protocol: none
+  endpoint: ""
+  timeout_ms: 3000
+  dev_build_only: true

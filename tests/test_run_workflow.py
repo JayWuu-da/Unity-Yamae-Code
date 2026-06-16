@@ -17,7 +17,7 @@ def test_run_plan_only_outputs_risk_context_guard_verify_plan(tmp_path: Path) ->
             "--project",
             str(tmp_path),
             "run",
-            "Fix ShopPresenter button raycast",
+            "Fix SamplePresenter button raycast",
             "--plan-only",
             "--verify-dry-run",
             "--json",

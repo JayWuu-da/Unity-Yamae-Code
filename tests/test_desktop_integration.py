@@ -145,3 +145,22 @@ def test_agent_prompt_prefers_unified_diff_for_guarded_flow(tmp_path: Path) -> N
     assert "unified diff" in prompt
     assert "--guarded-agent-patch" in prompt
     assert "Do not use FILE/ACTION/CONTENT" in prompt
+
+
+def test_generated_entrypoints_describe_task10_operability_contracts() -> None:
+    entrypoints = "\n".join(
+        [
+            codex_skill(),
+            claude_skill(),
+            claude_command(),
+        ]
+    )
+    entrypoints_lower = entrypoints.lower()
+
+    assert "shared inventory" in entrypoints_lower
+    assert "bounded generic semantic signals" in entrypoints_lower
+    assert "kunity-yamae tools list --json" in entrypoints
+    assert "kunity-yamae orchestrate" in entrypoints
+    assert "non-mutating" in entrypoints_lower
+    assert ".unity-harness/cache/" in entrypoints
+    assert "do not claim unity editor, playmode, build, or inspector" in entrypoints_lower

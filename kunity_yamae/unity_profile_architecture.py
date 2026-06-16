@@ -1,30 +1,19 @@
 from pathlib import Path
+from typing import Any
 
 from .unity_profile_common import iter_project_files, relative_path
 
 
-def detect_architecture_patterns(project_path: Path) -> dict:
+def detect_architecture_patterns(project_path: Path) -> dict[str, Any]:
     buckets = _collect_architecture_buckets(project_path)
     presenters = buckets["presenters"]
     views = buckets["views"]
     controllers = buckets["controllers"]
     managers = buckets["managers"]
     services = buckets["services"]
-    detected = []
-    if presenters and (views or controllers):
-        detected.append("mvp")
-    if controllers and views:
-        detected.append("mvc")
-    if managers:
-        detected.append("manager")
-    if services:
-        detected.append("service")
-    confidence = _architecture_confidence(presenters, controllers, managers, services)
-    warnings = []
-    if confidence != "high":
-        warnings.append("Do not assume architecture ownership from names alone.")
+    role_signals = _role_signals(buckets)
     return {
-        "detected": detected,
+        "detected": [],
         "presenters": presenters[:25],
         "views": views[:25],
         "controllers": controllers[:25],
@@ -32,8 +21,9 @@ def detect_architecture_patterns(project_path: Path) -> dict:
         "services": services[:25],
         "event_buses": buckets["event_buses"][:25],
         "scriptable_objects": buckets["scriptable_objects"][:25],
-        "confidence": confidence,
-        "warnings": warnings,
+        "role_signals": role_signals[:50],
+        "confidence": "low",
+        "warnings": ["Do not assume architecture ownership from names alone."],
     }
 
 
@@ -68,14 +58,25 @@ def _collect_architecture_buckets(project_path: Path) -> dict[str, list[str]]:
     return buckets
 
 
-def _architecture_confidence(
-    presenters: list[str],
-    controllers: list[str],
-    managers: list[str],
-    services: list[str],
-) -> str:
-    if presenters and controllers:
-        return "high"
-    if presenters or controllers or managers or services:
-        return "medium"
-    return "low"
+def _role_signals(buckets: dict[str, list[str]]) -> list[dict[str, str]]:
+    role_names = {
+        "presenters": "presenter",
+        "views": "view",
+        "controllers": "controller",
+        "managers": "manager",
+        "services": "service",
+        "event_buses": "event_bus",
+        "scriptable_objects": "scriptable_object",
+    }
+    signals: list[dict[str, str]] = []
+    for bucket, role in role_names.items():
+        for path in buckets[bucket]:
+            signals.append(
+                {
+                    "path": path,
+                    "role": role,
+                    "source": "content" if bucket == "scriptable_objects" else "filename",
+                    "confidence": "low",
+                }
+            )
+    return signals

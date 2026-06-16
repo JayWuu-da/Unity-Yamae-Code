@@ -4,3 +4,4 @@
 - Prefer the project's existing MVP, MVC, MVVM, Controller, Manager, Service, EventBus, or ScriptableObject data pattern.
 - Keep gameplay/domain state separate from UI view code when the touched domain already follows that pattern.
 - Add a new abstraction only when it removes repeated complexity or matches an established local convention.
+- Treat file names and class names as low-confidence signals only; do not infer ownership from names alone.

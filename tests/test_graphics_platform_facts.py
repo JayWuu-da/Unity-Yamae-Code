@@ -13,8 +13,8 @@ def test_scan_reports_platform_texture_import_settings(tmp_path: Path) -> None:
     graphics = profile["graphics_defaults"]
 
     texture = graphics["texture_import_settings"][0]
-    assert texture["path"] == "Assets/Textures/Hero.png.meta"
+    assert texture["path"] == "Assets/Textures/SampleTexture.png.meta"
     assert texture["platforms"]["Android"]["format"] == "ASTC_6x6"
     assert texture["platforms"]["iPhone"]["max_texture_size"] == 2048
     assert texture["platforms"]["Standalone"]["format"] == "RGBA32"
-    assert graphics["mobile_pc_mismatches"][0]["path"] == "Assets/Textures/Hero.png.meta"
+    assert graphics["mobile_pc_mismatches"][0]["path"] == "Assets/Textures/SampleTexture.png.meta"

@@ -1,4 +1,7 @@
 import json
+from collections.abc import Mapping, Sequence
+from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -10,6 +13,7 @@ from .live_plan import (
     unity_mcp_plan,
     visual_smoke_plan,
 )
+from .quality_gates import evaluate_quality_gate
 from .verifier import UnityVerifier
 
 console = Console()
@@ -29,6 +33,7 @@ console = Console()
 )
 @click.option("--live", is_flag=True, help="Include Unity MCP live verification scenario.")
 @click.option("--visual-smoke", is_flag=True, help="Include Game View screenshot smoke plan.")
+@click.option("--quality-gate", is_flag=True, help="Evaluate required verification tiers.")
 @click.option("--dry-run", is_flag=True, help="Print Unity commands without executing them.")
 @click.option("--json", "as_json", is_flag=True, help="Emit machine-readable JSON.")
 @click.pass_context
@@ -42,6 +47,7 @@ def verify_cmd(
     qa_level: str,
     live: bool,
     visual_smoke: bool,
+    quality_gate: bool,
     dry_run: bool,
     as_json: bool,
 ) -> None:
@@ -67,23 +73,13 @@ def verify_cmd(
             custom_method=custom_method,
         )
         if as_json:
-            click.echo(
-                json.dumps(
-                    {
-                        "schema": "unity-harness.verify-result.v1",
-                        "dry_run": True,
-                        "qa_level": qa_level,
-                        "results": results,
-                        "test_assembly_suggestions": test_assembly_suggestions(project_path),
-                        "unity_mcp": unity_mcp_plan(live, visual_smoke),
-                        "visual_smoke": visual_smoke_plan(visual_smoke),
-                    },
-                    indent=2,
-                )
-            )
+            payload = _verify_payload(project_path, qa_level, True, results, live, visual_smoke)
+            if quality_gate:
+                payload["quality_gate"] = evaluate_quality_gate(results)
+            click.echo(json.dumps(payload, indent=2))
             return
         for result in results:
-            console.print(" ".join(result["command"]))
+            console.print(" ".join(str(part) for part in result["command"]))
         return
 
     results = verifier.verify(
@@ -95,20 +91,10 @@ def verify_cmd(
     )
 
     if as_json:
-        click.echo(
-            json.dumps(
-                {
-                    "schema": "unity-harness.verify-result.v1",
-                    "dry_run": False,
-                    "qa_level": qa_level,
-                    "results": results,
-                    "test_assembly_suggestions": test_assembly_suggestions(project_path),
-                    "unity_mcp": unity_mcp_plan(live, visual_smoke),
-                    "visual_smoke": visual_smoke_plan(visual_smoke),
-                },
-                indent=2,
-            )
-        )
+        payload = _verify_payload(project_path, qa_level, False, results, live, visual_smoke)
+        if quality_gate:
+            payload["quality_gate"] = evaluate_quality_gate(results)
+        click.echo(json.dumps(payload, indent=2))
         return
 
     table = Table(title="Verification Results")
@@ -116,10 +102,33 @@ def verify_cmd(
     table.add_column("Status")
     table.add_column("Details")
     for result in results:
-        status_color = "green" if result["passed"] else "red"
+        passed = bool(result.get("passed"))
+        status_color = "green" if passed else "red"
+        name = str(result.get("name", "unknown"))
+        status = str(result.get("status", "unknown"))
+        details = str(result.get("details", ""))
         table.add_row(
-            result["name"],
-            f"[{status_color}]{result['status']}[/{status_color}]",
-            result.get("details", ""),
+            name,
+            f"[{status_color}]{status}[/{status_color}]",
+            details,
         )
     console.print(table)
+
+
+def _verify_payload(
+    project_path: Path,
+    qa_level: str,
+    dry_run: bool,
+    results: Sequence[Mapping[str, Any]],
+    live: bool,
+    visual_smoke: bool,
+) -> dict[str, Any]:
+    return {
+        "schema": "unity-harness.verify-result.v1",
+        "dry_run": dry_run,
+        "qa_level": qa_level,
+        "results": list(results),
+        "test_assembly_suggestions": test_assembly_suggestions(project_path),
+        "unity_mcp": unity_mcp_plan(live, visual_smoke),
+        "visual_smoke": visual_smoke_plan(visual_smoke),
+    }

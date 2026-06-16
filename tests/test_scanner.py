@@ -8,6 +8,7 @@ import pytest
 
 from kunity_yamae import scanner as scanner_module
 from kunity_yamae.profile_cache import load_cached_profile
+from kunity_yamae.project_files import ProjectFileInventory
 from kunity_yamae.scanner import UnityProjectScanner
 
 
@@ -72,6 +73,101 @@ def test_scan_detects_asmdef():
         assert profile["assemblies"][0]["name"] == "Game.Runtime"
 
 
+def test_scan_keeps_v1_schema_with_shared_file_inventory(tmp_path: Path) -> None:
+    (tmp_path / "ProjectSettings").mkdir()
+    (tmp_path / "ProjectSettings" / "EditorBuildSettings.asset").write_text(
+        "m_Scenes:\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "Assets" / "Scenes").mkdir(parents=True)
+    (tmp_path / "Packages" / "com.example.tool" / "Runtime").mkdir(parents=True)
+    (tmp_path / "Library" / "Generated").mkdir(parents=True)
+    (tmp_path / "Assets" / "Scenes" / "Main.unity").write_text("%YAML\n", encoding="utf-8")
+    (tmp_path / "Packages" / "com.example.tool" / "Runtime" / "Tool.asmdef").write_text(
+        json.dumps({"name": "Tool.Runtime", "includePlatforms": []}),
+        encoding="utf-8",
+    )
+    (tmp_path / "Packages" / "com.example.tool" / "Runtime" / "ToolScene.unity").write_text(
+        "%YAML\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "Library" / "Generated" / "Ignored.asmdef").write_text(
+        json.dumps({"name": "Ignored.Generated"}),
+        encoding="utf-8",
+    )
+
+    profile = UnityProjectScanner(tmp_path, make_config()).scan()
+
+    assert profile["schema"] == "unity-harness.project-profile.v1"
+    assert set(profile) >= {
+        "assemblies",
+        "generated_folders",
+        "packages",
+        "scenes",
+        "tests",
+        "unity_version",
+    }
+    assert [assembly["path"] for assembly in profile["assemblies"]] == [
+        "Packages/com.example.tool/Runtime/Tool.asmdef"
+    ]
+    assert profile["tests"].keys() == {
+        "editModeAvailable",
+        "playModeAvailable",
+        "test_asmdefs",
+    }
+    assert profile["scenes"] == [
+        "Assets/Scenes/Main.unity",
+        "Packages/com.example.tool/Runtime/ToolScene.unity",
+    ]
+    assert set(profile["generated_folders"]) >= {"Library", "Temp", "Obj", "Logs"}
+
+
+def test_scan_persists_project_file_inventory_for_context_consumers(tmp_path: Path) -> None:
+    script = tmp_path / "Assets" / "Scripts" / "RuntimeSpawner.cs"
+    prefab = tmp_path / "Packages" / "com.example.tool" / "Runtime" / "View.prefab"
+    resource = tmp_path / "Assets" / "Resources" / "Neutral.asset"
+    script.parent.mkdir(parents=True)
+    prefab.parent.mkdir(parents=True)
+    resource.parent.mkdir(parents=True)
+    script.write_text(
+        "using UnityEngine;\npublic sealed class RuntimeSpawner {}\n",
+        encoding="utf-8",
+    )
+    prefab.write_text("PrefabInstance:\n", encoding="utf-8")
+    resource.write_text("neutral", encoding="utf-8")
+
+    profile = UnityProjectScanner(tmp_path, make_config()).scan()
+
+    assert profile["project_files"]["scripts"] == ["Assets/Scripts/RuntimeSpawner.cs"]
+    assert profile["project_files"]["prefabs"] == [
+        "Packages/com.example.tool/Runtime/View.prefab"
+    ]
+    assert profile["project_files"]["resource_files"] == ["Assets/Resources/Neutral.asset"]
+    assert profile["project_files"]["package_local_content"] == [
+        "Packages/com.example.tool/Runtime/View.prefab"
+    ]
+
+
+def test_scan_reuses_single_inventory_for_runtime_asset_signals(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    (tmp_path / "Assets").mkdir()
+    (tmp_path / "Assets" / "View.prefab").write_text("PrefabInstance:\n", encoding="utf-8")
+    original_collect = ProjectFileInventory.collect
+    calls = {"count": 0}
+
+    def counting_collect(cls, project_path: Path) -> ProjectFileInventory:
+        calls["count"] += 1
+        return original_collect(project_path)
+
+    monkeypatch.setattr(ProjectFileInventory, "collect", classmethod(counting_collect))
+
+    UnityProjectScanner(tmp_path, make_config()).scan()
+
+    assert calls["count"] == 1
+
+
 def test_load_cached_profile_uses_fallback_when_primary_cache_is_partial(tmp_path: Path) -> None:
     cache_dir = tmp_path / ".unity-harness" / "cache"
     cache_dir.mkdir(parents=True)
@@ -130,3 +226,29 @@ def test_scan_retries_transient_cache_replace_lock(
     assert json.loads(cache_path.read_text(encoding="utf-8"))["schema"] == (
         "unity-harness.project-profile.v1"
     )
+
+
+def test_scan_raises_after_cache_replace_retry_exhaustion(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    scanner = UnityProjectScanner(tmp_path, make_config())
+    cache_dir = tmp_path / ".unity-harness" / "cache"
+    cache_path = cache_dir / "project-profile.json"
+    original_replace = Path.replace
+    attempts = {"count": 0}
+
+    def locked_replace(path: Path, target: Path) -> Path:
+        if target == cache_path:
+            attempts["count"] += 1
+            raise PermissionError("simulated persistent Windows cache lock")
+        return original_replace(path, target)
+
+    monkeypatch.setattr(Path, "replace", locked_replace)
+    monkeypatch.setattr(scanner_module.time, "sleep", lambda delay: None)
+
+    with pytest.raises(PermissionError, match="persistent Windows cache lock"):
+        scanner.scan()
+
+    assert attempts["count"] == 5
+    assert list(cache_dir.iterdir()) == []

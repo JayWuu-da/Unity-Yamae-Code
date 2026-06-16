@@ -12,7 +12,7 @@ def test_scan_reports_prefab_wiring_and_hierarchy_warnings(tmp_path: Path) -> No
     profile = UnityProjectScanner(tmp_path, config).scan(deep=True)
     ui = profile["ui_system"]
 
-    assert ui["prefab_wiring"][0]["path"] == "Assets/UI/MainMenu.prefab"
+    assert ui["prefab_wiring"][0]["path"] == "Assets/UI/SamplePanel.prefab"
     assert ui["prefab_wiring"][0]["button_like_count"] == 1
     assert ui["missing_script_count"] == 1
     assert "missing_event_system" in ui["hierarchy_warnings"]

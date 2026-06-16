@@ -225,6 +225,14 @@ Unity. It reads discovered static facts and signals from project files:
   file candidates, controller candidates, ScriptableObject candidates, and a
   confidence warning that naming alone is not ownership proof.
 
+The shared inventory is the common planning substrate for `scan`, `context`,
+`tools list --json`, `tools list --schema v2 --json`, `run --plan-only`, and
+non-mutating `orchestrate`. It
+contains discovered file paths, available harness tool capabilities, and bounded
+generic semantic signals. These signals are deliberately generic and do not
+prove Inspector object references, prefab override intent, persistent listener
+targets, PlayMode behavior, or build success.
+
 `inspect --editor-probe --json` temporarily stages an Editor script and runs a
 Unity batchmode `-executeMethod` probe. That tier can report Inspector-level
 facts such as persistent listener targets, prefab override counts, and missing
@@ -234,6 +242,28 @@ report keeps the static facts and marks `editor_probe.status` accordingly.
 Facts that are not discovered in the current Unity project root remain unknown.
 Naming patterns, static YAML/text markers, and cached profile data are not
 project ownership proof and are not Inspector proof.
+
+## Explicit v2 Agent Runtime Surface
+
+The default CLI remains v1-compatible. v2 is opt-in through explicit commands:
+
+```powershell
+kunity-yamae tools list --schema v2 --json
+kunity-yamae tools call harness.risk.classify --schema v2 --payload-json "{}" --json
+kunity-yamae orchestrate "$TASK" --execute-loop --schema v2 --verify-dry-run --json
+kunity-yamae verify --dry-run --quality-gate --json
+```
+
+The v2 tool registry adds permission, side-effect, lifecycle, adapter scope,
+evidence tier, and observability metadata. The v2 orchestration loop is
+non-mutating: it runs read/plan/status tools, writes trace and memory artifacts
+under `.unity-harness/`, and leaves source files, Unity YAML assets, and `.meta`
+files untouched.
+
+Editor adapter results are only planning or probe evidence unless Unity actually
+runs. Player adapter status is disabled and `unavailable` by default; any live
+Player bridge must be development-build-only and explicitly configured outside
+release builds.
 
 ---
 
@@ -249,6 +279,18 @@ and sends that diff through Unity-aware guard evaluation before optional apply.
 
 New model integrations should be added as desktop/CLI entrypoints or skills, not
 as in-process backend adapters in `AGENT_REGISTRY`.
+
+---
+
+## Artifact Hygiene
+
+Harness runtime state is local workspace evidence, not package content. Generated
+caches and reports must stay under `.unity-harness/cache/`,
+`.unity-harness/reports/`, or `.unity-harness/last-*`.
+
+Scratch planning/evidence artifacts such as `.omo/`, `.omx/`, `plans/`, and
+`evidence/` must remain untracked. `release-check --json` reports this as an
+agent-facing copy and operability contract.
 
 ---
 

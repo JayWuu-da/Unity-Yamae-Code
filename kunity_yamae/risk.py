@@ -1,3 +1,5 @@
+from typing import Any
+
 from .risk_checks import (
     check_architecture_pattern,
     check_asmdef_change,
@@ -19,12 +21,17 @@ from .risk_checks import (
 
 
 class RiskClassifier:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.risk_config = config.get("risk", {})
         self.file_risk_scores = config.get("file_risk_scores", {})
 
-    def classify(self, task: str, profile: dict, diff: str = "") -> dict:
+    def classify(
+        self,
+        task: str,
+        profile: dict[str, Any],
+        diff: str = "",
+    ) -> dict[str, Any]:
         triggers: list[str] = []
         file_risk = 0
         semantic_risk = 0
@@ -89,7 +96,7 @@ class RiskClassifier:
             "Resources/Addressables path change": "unity.resources-addressables",
             "Unity UI interaction/hierarchy": "unity.ui",
             "Unity execution path tracing": "unity.execution-path",
-            "Unity data contract/payload": "unity.data-contracts",
+            "Unity data contract": "unity.data-contracts",
             "Graphics/import platform settings": "unity.graphics-platform",
             "Unity architecture pattern": "unity.architecture-patterns",
             "Assembly definition change": "unity.asmdef",

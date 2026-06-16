@@ -16,9 +16,15 @@ python -m kunity_yamae.cli release-check --json
 
 - English and Korean README files describe the AI-agent workflow from git URL to target Unity project root.
 - Codex and Claude entrypoints state that context contains discovered facts and discovered files only.
+- Primary docs describe the shared inventory as discovered files, tool capabilities, and bounded generic semantic signals.
+- Primary docs mention `kunity-yamae tools list --json` and non-mutating `kunity-yamae orchestrate ... --plan-only --verify-dry-run --json` as concrete AI-agent orchestration tools.
+- Primary docs mention the explicit v2 surfaces: `tools list --schema v2 --json`, `orchestrate ... --execute-loop --schema v2 --verify-dry-run --json`, and `verify --dry-run --quality-gate --json`.
 - Static scanner limits are documented as signals, not Inspector proof.
+- Static and planned evidence do not prove Inspector object references, prefab override intent, PlayMode behavior, Game View state, or build success.
+- Do not claim Unity Editor, PlayMode, build, or Inspector verification unless that tier actually ran and produced evidence.
 - Primary docs avoid path placeholders and subcommand-level project options.
 - Model-backend credential setup language and scratch planning/evidence artifacts are absent from tracked files.
+- Harness output cleanup receipts stay under `.unity-harness/cache/`, `.unity-harness/reports/`, or `.unity-harness/last-*`; scratch planning/evidence artifacts stay untracked.
 
 ## Harness Smoke Checks
 
@@ -31,6 +37,9 @@ kunity-yamae --project tmp/release-fixture risk "Fix prefab button raycast" --js
 kunity-yamae --project tmp/release-fixture context --pretty "Fix prefab button raycast"
 kunity-yamae --project tmp/release-fixture providers doctor --json
 kunity-yamae --project tmp/release-fixture run "Fix prefab button raycast" --plan-only --verify-dry-run --json
+kunity-yamae --project tmp/release-fixture tools list --schema v2 --json
+kunity-yamae --project tmp/release-fixture orchestrate "Inspect neutral runtime component" --execute-loop --schema v2 --verify-dry-run --json
+kunity-yamae --project tmp/release-fixture verify --dry-run --quality-gate --json
 ```
 
 ## Unity Editor Checks

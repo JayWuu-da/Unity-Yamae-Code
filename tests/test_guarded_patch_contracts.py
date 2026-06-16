@@ -5,11 +5,11 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from kunity_yamae.cli import main
-from tests.fixtures.make_unity_project import create_minimal_project
+from tests.fixtures.make_unity_project import create_git_project_with_player_stats
 
 
 def test_guarded_agent_patch_reports_error_message_and_cleanup_receipt(tmp_path: Path) -> None:
-    _create_git_fixture(tmp_path)
+    create_git_project_with_player_stats(tmp_path)
     config_path = _write_config(tmp_path, "not a patch")
     runner = CliRunner()
 
@@ -39,7 +39,7 @@ def test_guarded_agent_patch_reports_error_message_and_cleanup_receipt(tmp_path:
 def test_guarded_agent_patch_does_not_leave_new_file_or_index_state_when_blocked(
     tmp_path: Path,
 ) -> None:
-    _create_git_fixture(tmp_path)
+    create_git_project_with_player_stats(tmp_path)
     config_path = _write_config(tmp_path, _new_prefab_patch())
     runner = CliRunner()
 
@@ -73,38 +73,6 @@ def test_guarded_agent_patch_does_not_leave_new_file_or_index_state_when_blocked
         capture_output=True,
     )
     assert "Assets/NewUI.prefab" not in status.stdout
-
-
-def _create_git_fixture(project_path: Path) -> None:
-    create_minimal_project(project_path)
-    script = project_path / "Assets" / "PlayerStats.cs"
-    script.write_text(
-        "\n".join(
-            [
-                "using UnityEngine;",
-                "public sealed class PlayerStats : MonoBehaviour",
-                "{",
-                "    [SerializeField] private int hitpoints;",
-                "}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    subprocess.run(["git", "init"], cwd=project_path, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "config", "user.email", "test@example.com"],
-        cwd=project_path,
-        check=True,
-    )
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=project_path, check=True)
-    subprocess.run(["git", "add", "."], cwd=project_path, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", "baseline"],
-        cwd=project_path,
-        check=True,
-        capture_output=True,
-    )
 
 
 def _write_config(project_path: Path, patch: str) -> Path:

@@ -1,9 +1,10 @@
 """Context selector - provides only relevant files and rule cards for a task."""
 
 from pathlib import Path
+from typing import Any
 
 from .constants import GENERATED_FOLDERS
-from .profile_cache import load_cached_profile
+from .profile_cache import cached_profile_inventory, cached_script_paths, load_cached_profile
 from .risk_checks import (
     check_data_contract,
     check_execution_path,
@@ -16,39 +17,42 @@ from .semantic_index import runtime_safety_hints
 
 
 class ContextSelector:
-    def __init__(self, project_path: Path, config: dict):
-        self.project_path = project_path
-        self.config = config
+    def __init__(self, project_path: Path, config: dict[str, Any]):
+        self.project_path: Path = project_path
+        self.config: dict[str, Any] = config
         ctx_config = config.get("context", {})
-        self.max_memory_chars = ctx_config.get("max_memory_chars", 2000)
-        self.max_preview_lines = ctx_config.get("max_preview_lines", 50)
-        self.max_files = ctx_config.get("max_files", 10)
-        self.max_file_size = ctx_config.get("max_file_size", 100000)
+        self.max_memory_chars: int = int(ctx_config.get("max_memory_chars", 2000))
+        self.max_preview_lines: int = int(ctx_config.get("max_preview_lines", 50))
+        self.max_files: int = int(ctx_config.get("max_files", 10))
+        self.max_file_size: int = int(ctx_config.get("max_file_size", 100000))
 
-    def select(self, task: str, risk_report: dict, mode: str) -> dict:
+    def select(self, task: str, risk_report: dict[str, Any], mode: str) -> dict[str, Any]:
         """Select relevant context for the task."""
+        relevant_files: list[str] = []
+        summaries: list[dict[str, Any]] = []
+        profile = load_cached_profile(self.project_path)
         context = {
             "task_brief": task,
             "risk_report": risk_report,
             "mode": mode,
             "rule_cards": self._select_rule_cards(risk_report),
-            "relevant_files": [],
-            "summaries": [],
-            "unity_facts": self._select_unity_facts(task),
+            "relevant_files": relevant_files,
+            "summaries": summaries,
+            "unity_facts": self._select_unity_facts(task, profile),
             "fact_limits": self._fact_limits(),
             "manual_checks": self._manual_checks(task, mode),
             "project_memory": self._load_nearest_memory(task),
         }
 
-        target_files = self._infer_target_files(task)
+        target_files = self._infer_target_files(task, profile)
         for f in target_files:
             full_path = self.project_path / f
             if full_path.exists():
-                context["relevant_files"].append(f)
+                relevant_files.append(f)
                 if f.endswith(".cs") and full_path.stat().st_size < self.max_file_size:
                     try:
                         content = full_path.read_text(encoding="utf-8")
-                        context["summaries"].append(
+                        summaries.append(
                             {
                                 "path": f,
                                 "type": "csharp",
@@ -63,11 +67,10 @@ class ContextSelector:
 
         return context
 
-    def _select_rule_cards(self, risk_report: dict) -> list[str]:
+    def _select_rule_cards(self, risk_report: dict[str, Any]) -> list[str]:
         return risk_report.get("required_rule_cards", ["unity.global"])
 
-    def _select_unity_facts(self, task: str) -> dict:
-        profile = load_cached_profile(self.project_path)
+    def _select_unity_facts(self, task: str, profile: dict[str, Any]) -> dict[str, Any]:
         fact_keys = ["render_pipeline", "input_system", "platform_targets", "asset_summary"]
         task_text = normalize_task_text(task)
         if check_ui_interaction(task_text, []):
@@ -92,11 +95,15 @@ class ContextSelector:
         selected["asset_summary"] = self._task_focused_asset_summary(
             task_text,
             selected.get("asset_summary", {}),
-            profile.get("vfx_semantics", {}),
+            profile.get("runtime_asset_signals", {}),
         )
-        if has_task_keyword(task_text, ["vfx", "visual", "ability", "prefab"]):
-            selected["vfx_semantics"] = profile.get("vfx_semantics", {})
-        safety = runtime_safety_hints(task, self.project_path)
+        if has_task_keyword(task_text, ["visual", "runtime asset", "resources.load", "prefab"]):
+            selected["runtime_asset_signals"] = profile.get("runtime_asset_signals", {})
+        safety = runtime_safety_hints(
+            task,
+            self.project_path,
+            inventory=cached_profile_inventory(self.project_path, profile),
+        )
         if safety:
             selected["runtime_safety"] = safety
         return selected
@@ -130,7 +137,7 @@ class ContextSelector:
 
     def _manual_checks(self, task: str, mode: str) -> list[str]:
         task_text = normalize_task_text(task)
-        checks = []
+        checks: list[str] = []
         if check_ui_interaction(task_text, []):
             checks.append(
                 "Verify EventSystem, GraphicRaycaster, interactable state, and raycast blockers."
@@ -142,8 +149,8 @@ class ContextSelector:
             )
         if check_data_contract(task_text, []):
             checks.append(
-                "Verify source table rows, localization keys, displayed text, "
-                "request/response DTOs, final payload shape, merge rules, and response apply path."
+                "Verify source rows, display keys, request/response DTOs, "
+                "output shape, merge rules, and response apply path."
             )
         if has_task_keyword(task_text, ["prefab", "scene", "hierarchy"]):
             checks.append(
@@ -160,24 +167,24 @@ class ContextSelector:
             )
         if has_task_keyword(
             task_text,
-            ["vfx", "visual", "ability", "resources.load", "resources load"],
+            ["visual", "runtime asset", "resources.load", "resources load"],
         ):
             checks.append(
                 "Use Unity MCP for refresh, tests, Game View screenshot, hierarchy, "
                 "and console checks."
             )
             checks.append(
-                "Verify Resources.Load paths, transient VFX lifetime, spawn caps, "
-                "recursion guards, and collider side effects."
+                "Verify Resources.Load paths against discovered Resources folders, "
+                "runtime asset lifetime, spawn caps, recursion guards, and collider side effects."
             )
         return checks
 
     def _task_focused_asset_summary(
         self,
         task_lower: str,
-        asset_summary: dict,
-        vfx_semantics: dict,
-    ) -> dict:
+        asset_summary: dict[str, Any],
+        runtime_asset_signals: dict[str, Any],
+    ) -> dict[str, Any]:
         compact = dict(asset_summary)
         prefabs = asset_summary.get("prefabs", [])
         if not isinstance(prefabs, list):
@@ -198,8 +205,8 @@ class ContextSelector:
                 for prefab in prefabs[: self.max_files]
                 if isinstance(prefab, str) and not prefab.startswith("Library/")
             ]
-        if vfx_semantics:
-            compact["vfx_summary"] = vfx_semantics.get("summary", {})
+        if runtime_asset_signals:
+            compact["runtime_asset_summary"] = runtime_asset_signals.get("summary", {})
         return compact
 
     @staticmethod
@@ -208,15 +215,16 @@ class ContextSelector:
         task_tokens = {token for token in task_lower.replace("/", " ").split() if len(token) > 2}
         return any(token in path_lower for token in task_tokens)
 
-    def _infer_target_files(self, task: str) -> list[str]:
+    def _infer_target_files(self, task: str, profile: dict[str, Any]) -> list[str]:
         task_words = self._search_words(task)
-        files = []
-        for cs_file in self.project_path.rglob("*.cs"):
-            if self._is_in_generated(cs_file):
+        files: list[str] = []
+        for relative_path in cached_script_paths(profile):
+            script_path = self.project_path / relative_path
+            if self._is_in_generated(script_path):
                 continue
-            name_words = self._search_words(cs_file.stem)
+            name_words = self._search_words(Path(relative_path).stem)
             if task_words & name_words:
-                files.append(cs_file.relative_to(self.project_path).as_posix())
+                files.append(relative_path)
         return files[: self.max_files]
 
     @staticmethod

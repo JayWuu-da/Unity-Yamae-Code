@@ -1,17 +1,28 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from click.testing import CliRunner
 
 import kunity_yamae.agents as agents
 from kunity_yamae.cli import main
-from tests.fixtures.make_unity_project import create_minimal_project
+from kunity_yamae.guarded_edits import GuardedEditWorkflow
+from tests.fixtures.make_unity_project import (
+    create_git_project_with_player_stats,
+    create_minimal_project,
+)
 
 
 class FakePatchAgent:
-    def __init__(self, name: str, config: dict, agent_config: dict) -> None:
+    def __init__(
+        self,
+        name: str,
+        config: dict[str, Any],
+        agent_config: dict[str, Any],
+    ) -> None:
         self.name = name
         self.config = config
         self.agent_config = agent_config
@@ -20,18 +31,35 @@ class FakePatchAgent:
         self,
         task: str,
         project_path: Path,
-        risk_report: dict,
+        risk_report: dict[str, Any],
         mode: str,
-        ledger,
-    ) -> dict:
+        ledger: Any,
+    ) -> dict[str, Any]:
         return {"status": "completed", "output": self.agent_config["patch"]}
+
+
+@pytest.fixture
+def git_fixture_counter(monkeypatch: pytest.MonkeyPatch) -> dict[str, int]:
+    counter = {"calls": 0}
+    original_create_git_project = create_git_project_with_player_stats
+
+    def counted_create_git_fixture(project_path: Path) -> None:
+        counter["calls"] += 1
+        original_create_git_project(project_path)
+
+    monkeypatch.setattr(
+        sys.modules[__name__],
+        "create_git_project_with_player_stats",
+        counted_create_git_fixture,
+    )
+    return counter
 
 
 def test_run_agent_patch_plan_routes_output_through_guarded_edit(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _create_git_fixture(tmp_path)
+    create_git_project_with_player_stats(tmp_path)
     monkeypatch.setitem(agents.AGENT_REGISTRY, "fakepatch", FakePatchAgent)
     config_path = _write_config(tmp_path, "fakepatch", _safe_patch())
     runner = CliRunner()
@@ -68,7 +96,7 @@ def test_run_local_patch_reads_patch_file_from_cli_and_reports_no_provider_reque
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _create_git_fixture(tmp_path)
+    create_git_project_with_player_stats(tmp_path)
     patch_file = tmp_path / "proposed.diff"
     patch_file.write_text(_safe_patch(), encoding="utf-8")
     config_path = _write_config(tmp_path, "local-patch", "")
@@ -107,7 +135,7 @@ def test_run_agent_patch_apply_blocks_serialized_rename(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    _create_git_fixture(tmp_path)
+    create_git_project_with_player_stats(tmp_path)
     monkeypatch.setitem(agents.AGENT_REGISTRY, "fakepatch", FakePatchAgent)
     config_path = _write_config(tmp_path, "fakepatch", _rename_patch())
     runner = CliRunner()
@@ -149,7 +177,7 @@ def test_run_agent_patch_apply_blocks_new_unity_asset_without_meta(
     monkeypatch,
     asset_path: str,
 ) -> None:
-    _create_git_fixture(tmp_path)
+    create_git_project_with_player_stats(tmp_path)
     monkeypatch.setitem(agents.AGENT_REGISTRY, "fakepatch", FakePatchAgent)
     config_path = _write_config(tmp_path, "fakepatch", _new_unity_asset_patch(asset_path))
     runner = CliRunner()
@@ -182,7 +210,10 @@ def test_run_agent_patch_apply_blocks_new_unity_asset_without_meta(
     assert not (tmp_path / asset_path).exists()
 
 
-def test_run_agent_patch_returns_json_failure_for_non_git_project(tmp_path: Path) -> None:
+def test_run_agent_patch_returns_json_failure_for_non_git_project(
+    tmp_path: Path,
+    git_fixture_counter: dict[str, int],
+) -> None:
     create_minimal_project(tmp_path)
     config_path = _write_config(tmp_path, "local-patch", _safe_patch())
     runner = CliRunner()
@@ -208,10 +239,14 @@ def test_run_agent_patch_returns_json_failure_for_non_git_project(tmp_path: Path
     assert payload["status"] == "failed"
     assert payload["failed_stage"] == "agent_patch_guard"
     assert payload["agent_patch"]["status"] == "error"
+    assert git_fixture_counter["calls"] == 0
 
 
-def test_run_agent_patch_returns_json_failure_for_empty_patch(tmp_path: Path) -> None:
-    _create_git_fixture(tmp_path)
+def test_run_agent_patch_returns_json_failure_for_empty_patch(
+    tmp_path: Path,
+    git_fixture_counter: dict[str, int],
+) -> None:
+    create_minimal_project(tmp_path)
     config_path = _write_config(tmp_path, "local-patch", "")
     runner = CliRunner()
 
@@ -236,66 +271,45 @@ def test_run_agent_patch_returns_json_failure_for_empty_patch(tmp_path: Path) ->
     assert payload["status"] == "failed"
     assert payload["failed_stage"] == "agent_execution"
     assert payload["error"] == "local-patch requires patch or patch_file"
+    assert git_fixture_counter["calls"] == 0
 
 
-def test_run_agent_patch_returns_json_failure_for_malformed_patch(tmp_path: Path) -> None:
-    _create_git_fixture(tmp_path)
-    config_path = _write_config(tmp_path, "local-patch", "not a patch")
-    runner = CliRunner()
+def test_guarded_workflow_reports_invalid_patch_without_git_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    git_fixture_counter: dict[str, int],
+) -> None:
+    def fake_run_git(
+        self: GuardedEditWorkflow,
+        args: list[str],
+        *,
+        check: bool = True,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(["git", *args], 0, stdout="", stderr="")
 
-    result = runner.invoke(
-        main,
-        [
-            "--project",
-            str(tmp_path),
-            "--config",
-            str(config_path),
-            "run",
-            "Malformed patch",
-            "--agent",
-            "local-patch",
-            "--guarded-agent-patch",
-            "--json",
-        ],
-    )
+    def fake_run_git_apply(
+        cwd: Path,
+        patch_text: str,
+        *,
+        check_only: bool = False,
+        reverse: bool = False,
+    ) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(
+            ["git", "apply"],
+            1,
+            stdout="",
+            stderr="error: No valid patches in input",
+        )
 
-    assert result.exit_code == 2, result.output
-    payload = json.loads(result.output)
-    assert payload["status"] == "failed"
-    assert payload["failed_stage"] == "agent_patch_guard"
-    assert payload["agent_patch"]["status"] == "invalid_patch"
+    monkeypatch.setattr(GuardedEditWorkflow, "_run_git", fake_run_git)
+    monkeypatch.setattr(GuardedEditWorkflow, "_run_git_apply", staticmethod(fake_run_git_apply))
 
+    result = GuardedEditWorkflow(tmp_path, {}).evaluate("not a patch")
 
-def _create_git_fixture(project_path: Path) -> None:
-    create_minimal_project(project_path)
-    script = project_path / "Assets" / "PlayerStats.cs"
-    script.write_text(
-        "\n".join(
-            [
-                "using UnityEngine;",
-                "public sealed class PlayerStats : MonoBehaviour",
-                "{",
-                "    [SerializeField] private int hitpoints;",
-                "}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    subprocess.run(["git", "init"], cwd=project_path, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "config", "user.email", "test@example.com"],
-        cwd=project_path,
-        check=True,
-    )
-    subprocess.run(["git", "config", "user.name", "Test"], cwd=project_path, check=True)
-    subprocess.run(["git", "add", "."], cwd=project_path, check=True, capture_output=True)
-    subprocess.run(
-        ["git", "commit", "-m", "baseline"],
-        cwd=project_path,
-        check=True,
-        capture_output=True,
-    )
+    assert result["status"] == "invalid_patch"
+    assert result["error"] == "error: No valid patches in input"
+    assert result["cleanup"]["worktree_removed"] is True
+    assert git_fixture_counter["calls"] == 0
 
 
 def _write_config(project_path: Path, agent_name: str, patch: str) -> Path:

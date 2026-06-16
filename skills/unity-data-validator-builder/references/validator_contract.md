@@ -5,9 +5,9 @@ A generated validator checks data contracts from source rows to final evidence r
 ## Contract Layers
 - Source table rows: required sections, required fields, and row identifiers.
 - Lookup links: field-to-field references between table sections.
-- Reward links: reward group or reward row references that must exist.
-- Localization links: display keys that must resolve in localization tables unless explicitly marked as sentinel values.
-- Payload shape notes: Type, Index, Value, Count, and array shape assumptions documented in the profile.
+- Relationship targets: referenced rows that must exist.
+- Display key links: display keys that must resolve in configured source data unless explicitly marked as sentinel values.
+- Output shape notes: fields, index meaning, and array shape assumptions documented in the profile.
 - Read-only server comparison: route, DTO, or response fields may be named in the generated profile, but the validator must not modify server code.
 
 ## Report Requirements

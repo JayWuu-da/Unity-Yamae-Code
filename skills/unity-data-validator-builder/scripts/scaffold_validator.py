@@ -56,55 +56,9 @@ def default_profile(domain: str) -> str:
     return dedent(
         f"""\
         domain: {domain}
-        table_root: Assets/Resources/TableDatas
-        tables:
-          - file: Shop.json
-            section: Pass
-            id_field: ID
-            required_fields: [ID, PRODUCT_ID, PRODUCT_GROUP_ID, LEVEL_COUNT, NAME_KEY]
-          - file: Shop.json
-            section: Product
-            id_field: ID
-            required_fields: [ID, TYPE, PURCHASE_ID]
-          - file: Shop.json
-            section: PassProduct
-            id_field: ID
-            required_fields: [ID, GROUP_ID, LEVEL, TYPE, REWARD_ID]
-          - file: Package.json
-            section: Package
-            id_field: ID
-            where: {{field: PurchaseType, equals: Pass}}
-            required_fields: [ID, product_id, PurchaseType]
-          - file: Reward.json
-            section: Reward
-            id_field: ID
-            required_fields: [ID, REWARD_ID, TYPE, VALUE, COUNT]
-          - file: LocalizeText.json
-            section: "*"
-            id_field: ID
-            required_fields: [TEXT]
-        relationships:
-          - name: pass-product-package
-            from: {{file: Shop.json, section: Pass, field: PRODUCT_ID}}
-            to_any:
-              - {{file: Shop.json, section: Product, field: ID}}
-              - {{file: Package.json, section: Package, field: ID}}
-            skip_values: ["", "0", "none", "-1"]
-          - name: pass-product-group
-            from: {{file: Shop.json, section: Pass, field: PRODUCT_GROUP_ID}}
-            to: {{file: Shop.json, section: PassProduct, field: GROUP_ID}}
-            skip_values: ["", "0", "none", "-1"]
-          - name: pass-name-localization
-            from: {{file: Shop.json, section: Pass, field: NAME_KEY}}
-            to: {{file: LocalizeText.json, section: "*", field: TEXT}}
-            skip_values: ["", "0", "none", "-1"]
-          - name: pass-product-reward
-            from: {{file: Shop.json, section: PassProduct, field: REWARD_ID}}
-            to: {{file: Reward.json, section: Reward, field: REWARD_ID}}
-            skip_values: ["", "0", "none", "-1"]
-        payload_shape_notes:
-          - Record the final Type, Index, Value, and Count shape in project-local reports.
-          - Treat server contracts as read-only comparison inputs.
+        table_root: <configure-project-table-root>
+        tables: []
+        relationships: []
         """
     )
 
@@ -115,7 +69,7 @@ def read_template(name: str) -> str:
 
 
 def render_readme(project_path: Path, domain: str) -> str:
-    return read_template("README.md").replace("{{PROJECT_PATH}}", str(project_path)).replace(
+    return read_template("README.md").replace("{{PROJECT_PATH}}", "<unity-project-root>").replace(
         "{{DOMAIN}}",
         domain,
     )

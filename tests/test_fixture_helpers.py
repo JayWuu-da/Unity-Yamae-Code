@@ -25,9 +25,9 @@ def test_make_unity_project_creates_ui_graphics_architecture_fixture(
 
     assert result.returncode == 0, result.stderr
     assert (target / "ProjectSettings" / "ProjectVersion.txt").exists()
-    assert (target / "Assets" / "UI" / "MainMenu.prefab").exists()
-    assert (target / "Assets" / "Textures" / "Hero.png.meta").exists()
-    assert (target / "Assets" / "Scripts" / "ShopPresenter.cs").exists()
+    assert (target / "Assets" / "UI" / "SamplePanel.prefab").exists()
+    assert (target / "Assets" / "Textures" / "SampleTexture.png.meta").exists()
+    assert (target / "Assets" / "Scripts" / "SamplePresenter.cs").exists()
     assert "FIXTURE_OK" in result.stdout
 
 

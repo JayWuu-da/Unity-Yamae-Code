@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Any
 
 from click.testing import CliRunner
 
@@ -28,19 +29,19 @@ def create_project(project_path: Path) -> None:
         "GameObject:\nPrefabInstance:\n",
         encoding="utf-8",
     )
-    (project_path / "Assets" / "UI" / "ShopButton.prefab").write_text(
-        "GameObject:\n  m_Name: ShopButton\n",
+    (project_path / "Assets" / "UI" / "SampleButton.prefab").write_text(
+        "GameObject:\n  m_Name: SampleButton\n",
         encoding="utf-8",
     )
 
 
-def write_editor_probe_report(project_path: Path, content: dict) -> None:
+def write_editor_probe_report(project_path: Path, content: dict[str, Any]) -> None:
     report_path = project_path / ".unity-harness" / "reports" / "editor-inspection.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(content), encoding="utf-8")
 
 
-def make_probe_payload() -> dict:
+def make_probe_payload() -> dict[str, Any]:
     return {
         "schema": "unity-harness.editor-inspection.v1",
         "generatedBy": "KUnityYamae.Editor.HarnessChecks.RunEditorInspection",
@@ -48,12 +49,12 @@ def make_probe_payload() -> dict:
             "persistentListenerCount": 1,
             "listeners": [
                 {
-                    "assetPath": "Assets/UI/ShopButton.prefab",
-                    "gameObjectPath": "ShopButton",
+                    "assetPath": "Assets/UI/SampleButton.prefab",
+                    "gameObjectPath": "SampleButton",
                     "componentType": "UnityEngine.UI.Button",
-                    "methodName": "OpenShop",
-                    "targetAssetPath": "Assets/Scripts/ShopPresenter.cs",
-                    "targetType": "ShopPresenter",
+                    "methodName": "OpenSamplePanel",
+                    "targetAssetPath": "Assets/Scripts/SamplePresenter.cs",
+                    "targetType": "SamplePresenter",
                 }
             ],
         },
@@ -68,9 +69,9 @@ def make_probe_payload() -> dict:
             "missingObjectReferenceCount": 1,
             "missingReferences": [
                 {
-                    "assetPath": "Assets/UI/ShopButton.prefab",
-                    "gameObjectPath": "ShopButton",
-                    "componentType": "ShopButtonView",
+                    "assetPath": "Assets/UI/SampleButton.prefab",
+                    "gameObjectPath": "SampleButton",
+                    "componentType": "SampleButtonView",
                     "propertyPath": "presenter",
                 }
             ],
@@ -79,8 +80,8 @@ def make_probe_payload() -> dict:
             "componentCount": 1,
             "components": [
                 {
-                    "assetPath": "Assets/UI/ShopButton.prefab",
-                    "gameObjectPath": "Canvas/ShopButton",
+                    "assetPath": "Assets/UI/SampleButton.prefab",
+                    "gameObjectPath": "Canvas/SampleButton",
                     "componentType": "UnityEngine.UI.Button",
                     "interactable": "True",
                     "raycastTarget": "",
@@ -105,14 +106,14 @@ def test_inspect_json_merges_editor_probe_report(tmp_path: Path) -> None:
     assert payload["editor_probe"]["inspector_connections"]["persistent_listener_count"] == 1
     assert (
         payload["editor_probe"]["inspector_connections"]["listeners"][0]["target_asset_path"]
-        == "Assets/Scripts/ShopPresenter.cs"
+        == "Assets/Scripts/SamplePresenter.cs"
     )
     assert payload["editor_probe"]["prefab_overrides"]["modified_property_count"] == 2
     assert payload["editor_probe"]["serialized_references"]["missing_object_reference_count"] == 1
     assert payload["editor_probe"]["ui_component_states"]["component_count"] == 1
     assert (
         payload["editor_probe"]["ui_component_states"]["components"][0]["game_object_path"]
-        == "Canvas/ShopButton"
+        == "Canvas/SampleButton"
     )
 
 
@@ -140,10 +141,10 @@ def test_inspect_editor_probe_option_runs_unity_probe_before_reporting(
     monkeypatch,
 ) -> None:
     create_project(tmp_path)
-    calls = []
+    calls: list[dict[str, Any]] = []
 
     class FakeVerifier:
-        def __init__(self, project_path: Path, config: dict) -> None:
+        def __init__(self, project_path: Path, config: dict[str, Any]) -> None:
             self.project_path = project_path
             self.config = config
 
@@ -154,7 +155,7 @@ def test_inspect_editor_probe_option_runs_unity_probe_before_reporting(
             playmode_tests: bool = False,
             build_target: str | None = None,
             custom_method: str | None = None,
-        ) -> list[dict]:
+        ) -> list[dict[str, Any]]:
             calls.append(
                 {
                     "compile_check": compile_check,
@@ -198,7 +199,7 @@ def test_inspect_editor_probe_option_stages_and_cleans_probe_files(
     staged_root = tmp_path / "Assets" / "Editor" / "KUnityYamaeHarness"
 
     class FakeVerifier:
-        def __init__(self, project_path: Path, config: dict) -> None:
+        def __init__(self, project_path: Path, config: dict[str, Any]) -> None:
             self.project_path = project_path
             self.config = config
 
@@ -209,7 +210,7 @@ def test_inspect_editor_probe_option_stages_and_cleans_probe_files(
             playmode_tests: bool = False,
             build_target: str | None = None,
             custom_method: str | None = None,
-        ) -> list[dict]:
+        ) -> list[dict[str, Any]]:
             assert (staged_root / "HarnessChecks.cs").exists()
             assert (staged_root / "EditorInspectionProbe.cs").exists()
             assert (staged_root / "EditorInspectionJson.cs").exists()
@@ -246,7 +247,7 @@ def test_inspect_editor_probe_reports_unavailable_when_unity_writes_no_report(
     create_project(tmp_path)
 
     class FakeVerifier:
-        def __init__(self, project_path: Path, config: dict) -> None:
+        def __init__(self, project_path: Path, config: dict[str, Any]) -> None:
             self.project_path = project_path
             self.config = config
 
@@ -257,7 +258,7 @@ def test_inspect_editor_probe_reports_unavailable_when_unity_writes_no_report(
             playmode_tests: bool = False,
             build_target: str | None = None,
             custom_method: str | None = None,
-        ) -> list[dict]:
+        ) -> list[dict[str, Any]]:
             return [{"name": "custom_RunEditorInspection", "status": "passed", "passed": True}]
 
     monkeypatch.setattr(cli_inspect, "UnityVerifier", FakeVerifier)

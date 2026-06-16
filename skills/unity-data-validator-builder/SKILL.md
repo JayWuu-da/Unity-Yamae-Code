@@ -1,6 +1,6 @@
 ---
 name: unity-data-validator-builder
-description: Build or refresh project-local Unity data validator skeletons for table, reward, shop, pass, package, localization, payload-shape, and read-only server-contract checks without storing project-specific examples in K-Unity-Yamae.
+description: Build or refresh project-local Unity data validator skeletons for source rows, lookup rows, relationship targets, display keys, external contracts, and output-shape checks without storing project-specific examples in K-Unity-Yamae.
 ---
 
 # Unity Data Validator Builder
@@ -10,7 +10,7 @@ Use this skill to create or update a project-local validator that checks Unity d
 
 ## When To Use
 - A Unity data domain needs repeatable validation before code or content changes.
-- Tables must be checked across source rows, lookup tables, reward rows, localization keys, package/shop links, or payload-shape assumptions.
+- Tables must be checked across source rows, lookup rows, relationship targets, display keys, external contract links, or output-shape assumptions.
 - Server or backend contracts must be compared as read-only reference material.
 
 ## Workflow

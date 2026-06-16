@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 from .profile_cache import load_cached_profile
 
@@ -44,7 +44,7 @@ def qa_level_defaults(qa_level: str, has_explicit_selection: bool) -> dict[str, 
     return defaults
 
 
-def unity_mcp_plan(enabled: bool, visual_smoke: bool) -> dict:
+def unity_mcp_plan(enabled: bool, visual_smoke: bool) -> dict[str, Any]:
     return {
         "recommended": True,
         "enabled": enabled,
@@ -57,13 +57,13 @@ def unity_mcp_plan(enabled: bool, visual_smoke: bool) -> dict:
     }
 
 
-def visual_smoke_plan(enabled: bool) -> dict:
+def visual_smoke_plan(enabled: bool) -> dict[str, Any]:
     return {
         "enabled": enabled,
         "screenshot_name": "visual-smoke.png",
         "pass_observable": (
-            "Game View screenshot exists, is non-empty, and expected runtime VFX "
-            "objects are present in hierarchy evidence."
+            "Game View screenshot exists, is non-empty, and expected runtime asset "
+            "state is present in hierarchy evidence."
         ),
     }
 

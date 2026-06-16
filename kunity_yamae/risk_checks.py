@@ -156,25 +156,19 @@ def check_data_contract(task_text: str, triggers: list[str]) -> int:
     keywords = [
         "table",
         "tables",
-        "localization",
-        "locale",
-        "packet",
-        "packets",
-        "payload",
-        "payloads",
         "dto",
+        "shape",
+        "shapes",
         "response",
         "responses",
         "contract",
         "contracts",
         "server",
         "backend",
-        "reward",
-        "rewards",
         "merge",
     ]
     if has_task_keyword(task_text, keywords):
-        triggers.append("Unity data contract/payload")
+        triggers.append("Unity data contract")
         return 30
     return 0
 
