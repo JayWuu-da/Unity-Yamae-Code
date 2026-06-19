@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+# pyright: reportAny=false, reportExplicitAny=false, reportMissingParameterType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownParameterType=false, reportUnknownVariableType=false, reportUnusedCallResult=false
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .constants import HARNESS_EDITOR_PROBE_METHOD
 from .contracts import validate_orchestration_plan_v1, validate_orchestration_run_v2
 from .memory_store import HarnessMemoryStore
 from .modes import select_mode
 from .observability import JsonlTraceSink
+from .orchestration_status import aggregate_run_status, skipped_step_v2
 from .tool_catalog import build_default_tool_registry
 
 
@@ -65,8 +68,8 @@ def build_orchestration_plan(
             "unity_editor_verified": False,
             "commands": verify_commands,
         },
-        "memory_policy": {"enabled": False, "store": ".unity-harness/state"},
-        "observability": {"trace": ".unity-harness/traces/events.jsonl"},
+        "memory_policy": {"enabled": False, "store": ".unity-harness/cache/state"},
+        "observability": {"trace": ".unity-harness/reports/traces/events.jsonl"},
         "evidence_tier": "planned",
     }
     return validate_orchestration_plan_v1(payload)
@@ -85,8 +88,9 @@ def run_orchestration_loop_v2(
     started = _utc_now()
     started_ticks = time.monotonic()
     registry = build_default_tool_registry(config, project_path)
-    trace = JsonlTraceSink(project_path / ".unity-harness" / "traces")
+    trace = JsonlTraceSink(project_path / ".unity-harness" / "reports" / "traces")
     steps: list[dict[str, Any]] = []
+    step_statuses: dict[str, str] = {}
 
     risk_input: dict[str, Any] = {"task": task}
     context_input: dict[str, Any] = {"task": task}
@@ -106,17 +110,18 @@ def run_orchestration_loop_v2(
         ("unity.inspect.editor_probe.plan", editor_input, ("unity.verify.plan",)),
         ("unity.player.status", player_input, ()),
     ):
-        steps.append(
-            _run_step_v2(
-                registry,
-                trace,
-                run_id,
-                trace_id,
-                tool_name,
-                tool_input,
-                depends_on=depends_on,
-            )
+        step = _run_step_v2(
+            registry,
+            trace,
+            run_id,
+            trace_id,
+            tool_name,
+            tool_input,
+            depends_on=depends_on,
+            step_statuses=step_statuses,
         )
+        steps.append(step)
+        step_statuses[tool_name] = str(step["status"])
 
     memory_input: dict[str, Any] = {
         "record": True,
@@ -134,10 +139,14 @@ def run_orchestration_loop_v2(
             "harness.memory.record",
             memory_input,
             depends_on=tuple(step["tool"] for step in steps),
+            step_statuses=step_statuses,
         )
     )
     metrics = trace.write_metrics_summary(run_id)
-    summary = HarnessMemoryStore(project_path / ".unity-harness" / "state").write_episodic_summary(
+    summary = HarnessMemoryStore(
+        project_path / ".unity-harness" / "cache" / "state",
+        storage_path_prefix=".unity-harness/cache/state",
+    ).write_episodic_summary(
         run_id,
         f"Executed {len(steps)} non-mutating v2 tool steps.",
     )
@@ -145,15 +154,15 @@ def run_orchestration_loop_v2(
         "schema": "unity-harness.orchestration-run.v2",
         "run_id": run_id,
         "task": task,
-        "status": "completed",
+        "status": aggregate_run_status(steps),
         "started_at": started,
         "completed_at": _utc_now(),
         "duration_ms": int((time.monotonic() - started_ticks) * 1000),
         "steps": steps,
         "artifacts": {
-            "trace_events": ".unity-harness/traces/events.jsonl",
-            "metrics_summary": ".unity-harness/traces/metrics-summary.json",
-            "memory_summary": ".unity-harness/state/episodic-summary.json",
+            "trace_events": ".unity-harness/reports/traces/events.jsonl",
+            "metrics_summary": ".unity-harness/reports/traces/metrics-summary.json",
+            "memory_summary": ".unity-harness/cache/state/episodic-summary.json",
         },
         "metrics": metrics,
         "memory_summary": summary,
@@ -165,7 +174,7 @@ def run_orchestration_loop_v2(
 
 def _probe_method(editor_probe: bool) -> str | None:
     if editor_probe:
-        return "KUnityYamae.EditorInspectionProbe.Run"
+        return HARNESS_EDITOR_PROBE_METHOD
     return None
 
 
@@ -192,9 +201,25 @@ def _run_step_v2(
     tool_input: dict[str, Any],
     *,
     depends_on: tuple[str, ...],
+    step_statuses: dict[str, str],
 ) -> dict[str, Any]:
     started = _utc_now()
     started_ticks = time.monotonic()
+    blocked = [name for name in depends_on if step_statuses.get(name) in {"failed", "skipped"}]
+    if blocked:
+        return skipped_step_v2(
+            registry,
+            trace,
+            run_id,
+            trace_id,
+            tool_name,
+            tool_input,
+            depends_on,
+            blocked,
+            started,
+            started_ticks,
+            _utc_now(),
+        )
     result = registry.call(tool_name, tool_input, "v2")
     duration_ms = int((time.monotonic() - started_ticks) * 1000)
     span_id = f"span-{uuid.uuid4().hex}"

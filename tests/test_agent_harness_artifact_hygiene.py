@@ -68,6 +68,17 @@ def test_harness_cli_outputs_stay_ignored_or_cached_in_git_fixture(tmp_path: Pat
             "--verify-dry-run",
             "--json",
         ],
+        [
+            "--project",
+            str(tmp_path),
+            "orchestrate",
+            "Fix generated artifact hygiene",
+            "--execute-loop",
+            "--schema",
+            "v2",
+            "--verify-dry-run",
+            "--json",
+        ],
     ]
 
     for command in commands:

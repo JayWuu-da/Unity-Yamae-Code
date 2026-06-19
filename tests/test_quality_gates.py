@@ -67,7 +67,7 @@ def test_verify_dry_run_quality_gate_is_unavailable_not_passed(tmp_path) -> None
         ],
     )
 
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 2, result.output
     payload = json.loads(result.output)
     assert payload["quality_gate"]["schema"] == "unity-harness.quality-gate-result.v1"
     assert payload["quality_gate"]["status"] == "unavailable"

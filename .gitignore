@@ -23,5 +23,7 @@ evidence/
 *~
 .unity-harness/cache/
 .unity-harness/reports/
+.unity-harness/state/
+.unity-harness/traces/
 .unity-harness/last-*.jsonl
 .unity-harness/last-*.json

@@ -256,9 +256,10 @@ kunity-yamae verify --dry-run --quality-gate --json
 
 The v2 tool registry adds permission, side-effect, lifecycle, adapter scope,
 evidence tier, and observability metadata. The v2 orchestration loop is
-non-mutating: it runs read/plan/status tools, writes trace and memory artifacts
-under `.unity-harness/`, and leaves source files, Unity YAML assets, and `.meta`
-files untouched.
+non-mutating: it runs read/plan/status tools, writes trace artifacts under
+`.unity-harness/reports/traces/` and memory state under
+`.unity-harness/cache/state/`, and leaves source files, Unity YAML assets, and
+`.meta` files untouched.
 
 Editor adapter results are only planning or probe evidence unless Unity actually
 runs. Player adapter status is disabled and `unavailable` by default; any live
@@ -359,6 +360,7 @@ K-Unity-Yamae/
 │   ├── run_pipeline.py    # mutating run use-case orchestration
 │   ├── verifier.py        # Unity verifier facade
 │   ├── unity_verification_contracts.py  # typed verifier contracts
+│   ├── unity_verification_commands.py   # shared Unity command builders
 │   ├── unity_verification_plan.py     # Unity dry-run command planner
 │   ├── unity_verification_steps.py    # Unity batchmode execution steps
 │   ├── unity_verification_support.py  # Unity log/executable helpers

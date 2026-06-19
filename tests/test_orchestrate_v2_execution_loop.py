@@ -18,6 +18,8 @@ def test_orchestrate_execute_loop_outputs_v2_run_and_artifacts(tmp_path: Path) -
             "orchestrate",
             "Inspect neutral runtime component",
             "--execute-loop",
+            "--schema",
+            "v2",
             "--verify-dry-run",
             "--json",
         ],
@@ -27,13 +29,15 @@ def test_orchestrate_execute_loop_outputs_v2_run_and_artifacts(tmp_path: Path) -
     payload = json.loads(result.output)
     assert validate_orchestration_run_v2(payload) == payload
     assert payload["schema"] == "unity-harness.orchestration-run.v2"
-    assert payload["status"] == "completed"
-    assert payload["artifacts"]["trace_events"].endswith(".unity-harness/traces/events.jsonl")
-    assert payload["artifacts"]["memory_summary"].endswith(
-        ".unity-harness/state/episodic-summary.json"
+    assert payload["status"] == "completed_with_warnings"
+    assert payload["artifacts"]["trace_events"].endswith(
+        ".unity-harness/reports/traces/events.jsonl"
     )
-    assert (tmp_path / ".unity-harness" / "traces" / "events.jsonl").exists()
-    assert (tmp_path / ".unity-harness" / "state" / "episodic-summary.json").exists()
+    assert payload["artifacts"]["memory_summary"].endswith(
+        ".unity-harness/cache/state/episodic-summary.json"
+    )
+    assert (tmp_path / ".unity-harness" / "reports" / "traces" / "events.jsonl").exists()
+    assert (tmp_path / ".unity-harness" / "cache" / "state" / "episodic-summary.json").exists()
     step_by_tool = {step["tool"]: step for step in payload["steps"]}
     assert step_by_tool["harness.risk.classify"]["permission_outcome"] == "allowed"
     assert step_by_tool["harness.memory.record"]["status"] == "completed"

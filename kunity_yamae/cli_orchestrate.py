@@ -46,6 +46,15 @@ def orchestrate_cmd(
         ctx.exit(2)
         return
     if execute_loop:
+        if schema_version != "v2":
+            payload = failed_tool_result(
+                "orchestrate",
+                "planned",
+                "orchestrate --execute-loop requires --schema v2",
+            )
+            click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+            ctx.exit(2)
+            return
         payload = run_orchestration_loop_v2(
             ctx.obj["project_path"],
             ctx.obj["config"],
@@ -57,6 +66,15 @@ def orchestrate_cmd(
             click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
             return
         click.echo(f"completed v2 tool loop: {task}")
+        return
+    if plan_only and schema_version != "v1":
+        payload = failed_tool_result(
+            "orchestrate",
+            "planned",
+            "orchestrate --plan-only currently emits schema v1; use --schema v1",
+        )
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        ctx.exit(2)
         return
     if not plan_only:
         payload = failed_tool_result(

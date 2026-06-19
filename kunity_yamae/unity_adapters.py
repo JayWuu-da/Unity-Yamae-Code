@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .constants import HARNESS_EDITOR_PROBE_METHOD
 from .contracts import validate_unity_adapter_result_v2
 
 
@@ -20,7 +21,7 @@ class EditorAdapter:
     def __init__(self, project_path: Path) -> None:
         self.project_path = project_path
 
-    def plan_probe(self, method: str) -> dict[str, Any]:
+    def plan_probe(self, method: str = HARNESS_EDITOR_PROBE_METHOD) -> dict[str, Any]:
         return validate_unity_adapter_result_v2(
             {
                 "schema": "unity-harness.unity-adapter-result.v2",

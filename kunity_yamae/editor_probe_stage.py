@@ -3,7 +3,12 @@ from contextlib import contextmanager
 from pathlib import Path
 from shutil import copy2, rmtree
 
-PROBE_FILES = ("HarnessChecks.cs", "EditorInspectionProbe.cs", "EditorInspectionJson.cs")
+PROBE_FILES = (
+    "HarnessChecks.cs",
+    "EditorInspectionProbe.cs",
+    "EditorInspectionJson.cs",
+    "BuildEntryPoint.cs",
+)
 
 
 @contextmanager

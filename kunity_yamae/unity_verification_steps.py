@@ -1,12 +1,15 @@
 import subprocess
-from collections.abc import Callable
+import xml.etree.ElementTree as ET
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
+from .editor_probe_stage import stage_editor_probe
+from .unity_verification_commands import build_player_command
 from .unity_verification_contracts import VerificationContext, VerificationResult
 
-UnityCommandRunner = Callable[[list[str], int], subprocess.CompletedProcess]
-UnityLogParser = Callable[[str], dict]
-OutputSummarizer = Callable[[subprocess.CompletedProcess], str]
+UnityCommandRunner = Callable[[list[str], int], subprocess.CompletedProcess[str]]
+UnityLogParser = Callable[[str], Mapping[str, Sequence[str]]]
+OutputSummarizer = Callable[[subprocess.CompletedProcess[str]], str]
 
 
 def run_compile_check(
@@ -90,22 +93,11 @@ def run_build(
         return _unity_missing(name)
 
     log_path = context.reports_dir / f"build_{target}.log"
-    cmd = [
-        unity_exe,
-        "-batchmode",
-        "-quit",
-        "-projectPath",
-        context.unity_project_path,
-        "-buildTarget",
-        target,
-        "-executeMethod",
-        "UnityEditor.BuildPipeline.BuildPlayer",
-        "-logFile",
-        str(log_path),
-    ]
+    cmd = build_player_command(context, unity_exe, target, log_path)
 
     try:
-        result = run_unity_command(cmd, context.timeout_build)
+        with stage_editor_probe(context.project_path):
+            result = run_unity_command(cmd, context.timeout_build)
         log_content = _read_optional_log(log_path)
         if "Build succeeded" in log_content or result.returncode == 0:
             return _result(name, "passed", True, f"Build to {target} succeeded", log_path)
@@ -161,26 +153,39 @@ def _run_test_platform(
     if not unity_exe:
         return _unity_missing(name)
 
-    results_path = context.project_path / context.unity_config.get(
-        "test_results_dir", ".unity-harness/reports/test-results"
-    )
+    results_path = context.project_path / _test_results_dir(context)
     results_path.mkdir(parents=True, exist_ok=True)
     test_results = results_path / f"{basename}.xml"
     log_path = context.reports_dir / f"{basename}.log"
     cmd = _test_command(context, unity_exe, test_platform, test_results, log_path)
 
     try:
-        run_unity_command(cmd, timeout)
+        process = run_unity_command(cmd, timeout)
         if not test_results.exists():
             return _result(name, "no_results", False, "No test results generated", log_path)
-        xml_content = test_results.read_text(encoding="utf-8")
-        passed = 'result="passed"' in xml_content.lower() or 'result="Passed"' in xml_content
-        failed_count = xml_content.count('result="Failed"') + xml_content.count('result="failed"')
+        try:
+            root = ET.parse(test_results).getroot()
+        except ET.ParseError as exc:
+            return _result(
+                name,
+                "failed",
+                False,
+                f"Malformed test results XML: {exc}",
+                log_path,
+                test_results,
+            )
+        overall_result = root.attrib.get("result", "").lower()
+        failed_count = int(root.attrib.get("failed", "0") or "0")
+        passed = process.returncode == 0 and overall_result == "passed" and failed_count == 0
+        details = (
+            f"overall: {root.attrib.get('result', 'unknown')}; "
+            f"failed: {failed_count}; return code: {process.returncode}"
+        )
         return _result(
             name,
             "passed" if passed else "failed",
             passed,
-            f"Failed: {failed_count}",
+            details,
             log_path,
             test_results,
         )
@@ -214,6 +219,13 @@ def _test_command(
         "-logFile",
         str(log_path),
     ]
+
+
+def _test_results_dir(context: VerificationContext) -> str:
+    configured = context.unity_config.get("test_results_dir")
+    if isinstance(configured, str) and configured:
+        return configured
+    return ".unity-harness/reports/test-results"
 
 
 def _result(

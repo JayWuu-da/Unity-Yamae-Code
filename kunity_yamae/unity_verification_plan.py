@@ -1,3 +1,4 @@
+from .unity_verification_commands import build_player_command
 from .unity_verification_contracts import PlannedCommand, VerificationContext
 
 
@@ -115,20 +116,11 @@ def _planned_build_command(
     project_path: str,
     build_target: str,
 ) -> PlannedCommand:
+    log_path = context.reports_dir / f"build_{build_target}.log"
     return {
         "name": f"build_{build_target}",
         "tier": "5",
         "status": "planned",
         "passed": False,
-        "command": [
-            unity_exe,
-            "-batchmode",
-            "-quit",
-            "-projectPath",
-            project_path,
-            "-buildTarget",
-            build_target,
-            "-logFile",
-            str(context.reports_dir / f"build_{build_target}.log"),
-        ],
+        "command": build_player_command(context, unity_exe, build_target, log_path),
     }

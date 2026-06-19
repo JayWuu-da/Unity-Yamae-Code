@@ -22,7 +22,15 @@ VALID_TOOL_STATUSES = {"completed", "failed", "unavailable"}
 VALID_TOOL_LIFECYCLES = {"available", "planned", "experimental", "deprecated", "unavailable"}
 VALID_ADAPTER_SCOPES = {"harness", "project", "editor", "player", "none"}
 VALID_PERMISSION_OUTCOMES = {"allowed", "refused", "unavailable", "not_requested"}
-VALID_RUN_STATUSES = {"planned", "running", "completed", "failed", "skipped", "unavailable"}
+VALID_RUN_STATUSES = {
+    "planned",
+    "running",
+    "completed",
+    "completed_with_warnings",
+    "failed",
+    "skipped",
+    "unavailable",
+}
 VALID_EDITOR_OPERATIONS = {"plan", "probe", "verify", "inspect_report"}
 VALID_PLAYER_OPERATIONS = {"status", "connect_plan", "request_response"}
 TOOL_SPEC_TEXT_FIELDS = (
@@ -234,7 +242,6 @@ def _require_allowed_memory_path(path: str, field: str) -> None:
     allowed = (
         normalized.startswith(".unity-harness/cache/"),
         normalized.startswith(".unity-harness/reports/"),
-        normalized.startswith(".unity-harness/state/"),
         normalized.startswith(".unity-harness/last-"),
     )
     _require(not normalized.startswith("/") and ".." not in normalized.split("/"), field)

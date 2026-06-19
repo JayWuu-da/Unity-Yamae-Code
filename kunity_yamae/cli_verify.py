@@ -77,6 +77,7 @@ def verify_cmd(
             if quality_gate:
                 payload["quality_gate"] = evaluate_quality_gate(results)
             click.echo(json.dumps(payload, indent=2))
+            _exit_if_quality_gate_failed(ctx, payload)
             return
         for result in results:
             console.print(" ".join(str(part) for part in result["command"]))
@@ -95,6 +96,7 @@ def verify_cmd(
         if quality_gate:
             payload["quality_gate"] = evaluate_quality_gate(results)
         click.echo(json.dumps(payload, indent=2))
+        _exit_if_quality_gate_failed(ctx, payload)
         return
 
     table = Table(title="Verification Results")
@@ -113,6 +115,10 @@ def verify_cmd(
             details,
         )
     console.print(table)
+    if quality_gate:
+        gate = evaluate_quality_gate(results)
+        if gate["passed"] is not True:
+            ctx.exit(2)
 
 
 def _verify_payload(
@@ -132,3 +138,9 @@ def _verify_payload(
         "unity_mcp": unity_mcp_plan(live, visual_smoke),
         "visual_smoke": visual_smoke_plan(visual_smoke),
     }
+
+
+def _exit_if_quality_gate_failed(ctx, payload: Mapping[str, Any]) -> None:
+    gate = payload.get("quality_gate")
+    if isinstance(gate, Mapping) and gate.get("passed") is not True:
+        ctx.exit(2)

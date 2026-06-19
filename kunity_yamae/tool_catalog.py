@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .constants import HARNESS_EDITOR_PROBE_METHOD
 from .context import ContextSelector
 from .memory_store import HarnessMemoryStore
 from .project_files import ProjectFileInventory
@@ -155,7 +156,7 @@ def _inspect(config: dict[str, Any], project_path: Path):
 
 def _editor_probe_plan(project_path: Path):
     def handler(payload: dict[str, Any]) -> dict[str, Any]:
-        method = str(payload.get("method", "KUnityYamae.EditorInspectionProbe.Run"))
+        method = str(payload.get("method", HARNESS_EDITOR_PROBE_METHOD))
         adapter_result = EditorAdapter(project_path).plan_probe(method)
         return completed_tool_result(
             "unity.inspect.editor_probe.plan",
@@ -236,7 +237,10 @@ def _memory_record(project_path: Path):
                 "harness.memory.record",
                 "Memory record adapter is explicit; pass record=true to write session memory.",
             )
-        store = HarnessMemoryStore(project_path / ".unity-harness" / "state")
+        store = HarnessMemoryStore(
+            project_path / ".unity-harness" / "cache" / "state",
+            storage_path_prefix=".unity-harness/cache/state",
+        )
         event = store.record_event(
             run_id=str(payload.get("run_id", "manual-tool-call")),
             event=str(payload.get("event", "tool_result")),

@@ -127,7 +127,8 @@ def test_trace_sink_handles_cross_process_concurrent_distinct_events(tmp_path) -
 
 
 def test_memory_store_records_deduped_events_without_raw_patch_body(tmp_path) -> None:
-    store = HarnessMemoryStore(tmp_path / ".unity-harness" / "state")
+    state_dir = tmp_path / ".unity-harness" / "cache" / "state"
+    store = HarnessMemoryStore(state_dir)
     event = store.record_event(
         run_id="run-001",
         event="tool_result",
@@ -146,20 +147,19 @@ def test_memory_store_records_deduped_events_without_raw_patch_body(tmp_path) ->
 
     rows = [
         json.loads(line)
-        for line in (tmp_path / ".unity-harness" / "state" / "memory-events.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for line in (state_dir / "memory-events.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert event == duplicate
     assert len(rows) == 1
     assert rows[0]["retention"]["store_raw_patch_bodies"] is False
     assert summary["schema"] == "unity-harness.episodic-memory-summary.v1"
     assert summary["event_count"] == 1
-    assert (tmp_path / ".unity-harness" / "state" / "memory.db").exists()
+    assert (state_dir / "memory.db").exists()
 
 
 def test_memory_store_dedupes_concurrent_writes_with_sqlite(tmp_path) -> None:
-    store = HarnessMemoryStore(tmp_path / ".unity-harness" / "state")
+    state_dir = tmp_path / ".unity-harness" / "cache" / "state"
+    store = HarnessMemoryStore(state_dir)
 
     def write_same_event() -> str:
         event = store.record_event(
@@ -176,16 +176,15 @@ def test_memory_store_dedupes_concurrent_writes_with_sqlite(tmp_path) -> None:
 
     rows = [
         json.loads(line)
-        for line in (tmp_path / ".unity-harness" / "state" / "memory-events.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for line in (state_dir / "memory-events.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert set(fingerprints) == {"same-event"}
     assert len(rows) == 1
 
 
 def test_memory_store_handles_concurrent_distinct_events(tmp_path) -> None:
-    store = HarnessMemoryStore(tmp_path / ".unity-harness" / "state")
+    state_dir = tmp_path / ".unity-harness" / "cache" / "state"
+    store = HarnessMemoryStore(state_dir)
 
     def write_event(index: int) -> str:
         event = store.record_event(
@@ -202,16 +201,14 @@ def test_memory_store_handles_concurrent_distinct_events(tmp_path) -> None:
 
     rows = [
         json.loads(line)
-        for line in (tmp_path / ".unity-harness" / "state" / "memory-events.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for line in (state_dir / "memory-events.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert len(set(fingerprints)) == 64
     assert len(rows) == 64
 
 
 def test_memory_store_handles_cross_instance_concurrent_distinct_events(tmp_path) -> None:
-    state_dir = tmp_path / ".unity-harness" / "state"
+    state_dir = tmp_path / ".unity-harness" / "cache" / "state"
 
     def write_event(index: int) -> str:
         event = HarnessMemoryStore(state_dir).record_event(

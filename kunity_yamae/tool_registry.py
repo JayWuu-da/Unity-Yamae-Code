@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -71,8 +72,15 @@ class RegisteredTool:
 
 
 class ToolRegistry:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        allowed_permissions: tuple[str, ...] = ("read", "plan"),
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         self._tools: dict[str, RegisteredTool] = {}
+        self._allowed_permissions = frozenset(allowed_permissions)
+        self._clock = clock
 
     def register(self, spec: ToolSpec, handler: ToolHandler) -> None:
         if spec.name in self._tools:
@@ -104,10 +112,27 @@ class ToolRegistry:
         schema_version: str = "v1",
     ) -> dict[str, Any]:
         tool = self.get(name)
+        if tool.spec.permission not in self._allowed_permissions:
+            result = failed_tool_result(
+                name,
+                tool.spec.evidence_tier,
+                f"permission denied: {tool.spec.permission}",
+            )
+            if schema_version == "v2":
+                return _to_v2_result(tool.spec, result)
+            return validate_tool_call_result_v1(result)
+        started = self._clock()
         try:
             result = tool.handler(payload)
         except KeyError as exc:
             result = failed_tool_result(name, tool.spec.evidence_tier, str(exc))
+        elapsed_ms = int((self._clock() - started) * 1000)
+        if elapsed_ms > tool.spec.timeout_ms:
+            result = failed_tool_result(
+                name,
+                tool.spec.evidence_tier,
+                f"tool timed out after {elapsed_ms}ms; limit is {tool.spec.timeout_ms}ms",
+            )
         if schema_version == "v2":
             return _to_v2_result(tool.spec, result)
         return validate_tool_call_result_v1(result)

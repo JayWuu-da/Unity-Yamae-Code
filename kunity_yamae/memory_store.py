@@ -12,8 +12,14 @@ from .path_locks import interprocess_lock_for_path, lock_for_path
 
 
 class HarnessMemoryStore:
-    def __init__(self, state_dir: Path) -> None:
+    def __init__(
+        self,
+        state_dir: Path,
+        *,
+        storage_path_prefix: str = ".unity-harness/cache/state",
+    ) -> None:
         self.state_dir = state_dir
+        self.storage_path_prefix = storage_path_prefix.rstrip("/")
         self.events_path = state_dir / "memory-events.jsonl"
         self.summary_path = state_dir / "episodic-summary.json"
         self.db_path = state_dir / "memory.db"
@@ -37,7 +43,7 @@ class HarnessMemoryStore:
                 "schema": "unity-harness.memory-event.v2",
                 "run_id": run_id,
                 "event": event,
-                "storage_path": ".unity-harness/state/memory-events.jsonl",
+                "storage_path": f"{self.storage_path_prefix}/memory-events.jsonl",
                 "dedupe_fingerprint": fingerprint,
                 "payload": payload,
                 "provenance": provenance,
@@ -56,7 +62,7 @@ class HarnessMemoryStore:
             {
                 "schema": "unity-harness.episodic-memory-summary.v1",
                 "run_id": run_id,
-                "storage_path": ".unity-harness/state/episodic-summary.json",
+                "storage_path": f"{self.storage_path_prefix}/episodic-summary.json",
                 "summary": summary,
                 "event_count": len(self._read_events()),
                 "provenance": {"evidence_tier": "static_scan", "source": "memory_store"},

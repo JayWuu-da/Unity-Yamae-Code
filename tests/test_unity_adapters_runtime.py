@@ -1,11 +1,12 @@
 from pathlib import Path
 
+from kunity_yamae.constants import HARNESS_EDITOR_PROBE_METHOD
 from kunity_yamae.contracts import validate_unity_adapter_result_v2
 from kunity_yamae.unity_adapters import EditorAdapter, PlayerAdapter, default_player_adapter_config
 
 
 def test_editor_adapter_plan_probe_does_not_claim_editor_verification(tmp_path: Path) -> None:
-    result = EditorAdapter(tmp_path).plan_probe("KUnityYamae.EditorInspectionProbe.Run")
+    result = EditorAdapter(tmp_path).plan_probe(HARNESS_EDITOR_PROBE_METHOD)
 
     assert validate_unity_adapter_result_v2(result) == result
     assert result["adapter"] == "editor"

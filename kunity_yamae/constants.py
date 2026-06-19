@@ -1,6 +1,20 @@
 """Shared constants for K-Unity-Yamae."""
 
-GENERATED_FOLDERS = {"Library", "Temp", "Obj", "Logs", "Builds", "UserSettings", ".vs"}
+GENERATED_FOLDERS = {
+    ".git",
+    ".unity-harness",
+    ".venv",
+    ".vs",
+    "Builds",
+    "Library",
+    "Logs",
+    "Obj",
+    "Temp",
+    "UserSettings",
+}
+
+HARNESS_EDITOR_PROBE_METHOD = "KUnityYamae.Editor.HarnessChecks.RunEditorInspection"
+HARNESS_BUILD_ENTRY_METHOD = "KUnityYamae.Editor.BuildEntryPoint.Build"
 
 PROTECTED_YAML_EXTENSIONS = {
     ".unity",
