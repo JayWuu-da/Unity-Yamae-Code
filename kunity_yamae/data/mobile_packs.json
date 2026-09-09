@@ -1,0 +1,112 @@
+[
+  {
+    "id": "async-unitask",
+    "title": "UniTask and coroutine lifecycle",
+    "tags": ["unitask", "coroutine", "async", "cancellation", "코루틴", "비동기"],
+    "reviewed_on": "2026-09-09",
+    "review_after_days": 30,
+    "version_scope": "Inspect the installed UniTask revision and Unity version before copying APIs.",
+    "sources": [
+      "https://github.com/Cysharp/UniTask",
+      "https://docs.unity3d.com/6000.0/Documentation/ScriptReference/MonoBehaviour.StartCoroutine.html"
+    ],
+    "source_facts": [
+      "UniTask integrates async work with Unity PlayerLoop and supports cancellation tokens.",
+      "Unity coroutines express work across frames and are not equivalent to background threads."
+    ],
+    "local_policy": [
+      "Do not mass-convert coroutines merely because UniTask is installed.",
+      "Separate scene lifetime, pooled object lifetime, and application lifetime.",
+      "Treat cancellation separately from faults and unobserved fire-and-forget failures."
+    ]
+  },
+  {
+    "id": "admob-ump",
+    "title": "Google Mobile Ads and UMP",
+    "tags": ["admob", "mobileads", "ump", "consent", "rewarded", "광고", "동의", "보상형"],
+    "reviewed_on": "2026-09-09",
+    "review_after_days": 30,
+    "version_scope": "Resolve Unity plugin and Android/iOS native SDK versions independently.",
+    "sources": [
+      "https://developers.google.com/admob/unity/quick-start",
+      "https://developers.google.com/admob/unity/privacy",
+      "https://developers.google.com/admob/unity/test-ads"
+    ],
+    "source_facts": [
+      "Mobile Ads initialization precedes normal ad loading flows.",
+      "UMP exposes consent information and whether ads may be requested.",
+      "Development should use sample ad units or registered test devices."
+    ],
+    "local_policy": [
+      "Reward and close are distinct events; do not grant rewards from close alone.",
+      "Never enable live paid advertising as part of a harness smoke test.",
+      "Treat consent handling as platform-sensitive and require review."
+    ]
+  },
+  {
+    "id": "iap-v5",
+    "title": "Unity IAP v5 purchase lifecycle",
+    "tags": ["iap", "purchase", "receipt", "transaction", "billing", "구매", "결제", "영수증"],
+    "reviewed_on": "2026-09-09",
+    "review_after_days": 30,
+    "version_scope": "com.unity.purchasing major 5; exact installed API must be inspected.",
+    "sources": [
+      "https://docs.unity.com/en-us/iap/upgrade-to-iap-v5",
+      "https://docs.unity.com/en-us/iap/purchases"
+    ],
+    "source_facts": [
+      "IAP v5 separates store connection, product retrieval, and purchase retrieval.",
+      "Pending purchase handling and confirmation are explicit parts of the v5 lifecycle."
+    ],
+    "local_policy": [
+      "Do not mechanically port deprecated Product.transactionID usage from IAP v4.",
+      "Preserve identifiers as strings and inspect installed Order/cart/product APIs.",
+      "Use idempotent fulfillment and server-authoritative verification for live games."
+    ]
+  },
+  {
+    "id": "firebase-auth",
+    "title": "Firebase Auth, Google/Apple sign-in, and account linking",
+    "tags": ["firebase", "auth", "google", "apple", "oauth", "nonce", "uid", "login", "link", "로그인", "계정", "연동"],
+    "reviewed_on": "2026-09-09",
+    "review_after_days": 30,
+    "version_scope": "Inspect Firebase Unity SDK plus the actual platform sign-in provider implementation.",
+    "sources": [
+      "https://firebase.google.com/docs/unity/setup",
+      "https://firebase.google.com/docs/auth/unity/google-signin",
+      "https://firebase.google.com/docs/auth/unity/apple",
+      "https://firebase.google.com/docs/auth/unity/account-linking"
+    ],
+    "source_facts": [
+      "Firebase account linking preserves one Firebase user identity when provider credentials are linked to the signed-in user.",
+      "Apple authentication uses nonce-sensitive credential flows on Apple platforms.",
+      "Provider credentials already linked to another account require explicit conflict handling."
+    ],
+    "local_policy": [
+      "Do not confuse provider tokens with Firebase ID tokens.",
+      "Do not copy UIDs client-side to merge accounts.",
+      "Never log tokens, nonces, credentials, or private project configuration."
+    ]
+  },
+  {
+    "id": "native-mobile-build",
+    "title": "Android and iOS native dependency diagnostics",
+    "tags": ["gradle", "xcode", "android", "ios", "edm4u", "aar", "pod", "il2cpp", "sigsegv", "native crash", "빌드", "크래시"],
+    "reviewed_on": "2026-09-09",
+    "review_after_days": 30,
+    "version_scope": "Observe Unity, Gradle/AGP/JDK, CocoaPods/Xcode, ABI, target SDK, and installed plugin versions.",
+    "sources": [
+      "https://docs.unity3d.com/Manual/android-BuildProcess.html",
+      "https://docs.unity3d.com/Manual/iphone-BuildProcess.html"
+    ],
+    "source_facts": [
+      "Unity Android and iOS builds cross native toolchain boundaries where external dependencies participate.",
+      "Native crash evidence must be distinguished from managed C# exceptions."
+    ],
+    "local_policy": [
+      "Collect the real dependency graph and device ABI before changing versions blindly.",
+      "Do not attribute SIGSEGV to Unity C# code without symbolized/native evidence.",
+      "Escalate native loader, IL2CPP, Gradle, Xcode, signing, and entitlement changes to architect review."
+    ]
+  }
+]
