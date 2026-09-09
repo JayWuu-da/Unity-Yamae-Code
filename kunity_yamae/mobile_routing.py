@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Literal
 
+from .risk_checks import has_task_keyword, normalize_task_text
+
 AgentRole = Literal["local", "worker", "architect", "reviewer", "human"]
 
 SENSITIVE_TERMS = (
@@ -41,10 +43,14 @@ def route_mobile_task(task: str, *, risk_score: int, failure_count: int = 0) -> 
     The result is advisory. Existing patch guards, Unity verification and human approval
     remain authoritative.
     """
-    text = " ".join(task.lower().split())
-    sensitive = tuple(term for term in SENSITIVE_TERMS if term in text)
-    architectural = tuple(term for term in ARCHITECTURE_TERMS if term in text)
-    local = tuple(term for term in LOCAL_TERMS if term in text)
+    if type(risk_score) is not int or not 0 <= risk_score <= 100:
+        raise ValueError("risk_score must be an integer between 0 and 100")
+    if type(failure_count) is not int or failure_count < 0:
+        raise ValueError("failure_count must be a non-negative integer")
+    text = normalize_task_text(task)
+    sensitive = tuple(term for term in SENSITIVE_TERMS if has_task_keyword(text, [term]))
+    architectural = tuple(term for term in ARCHITECTURE_TERMS if has_task_keyword(text, [term]))
+    local = tuple(term for term in LOCAL_TERMS if has_task_keyword(text, [term]))
 
     if failure_count >= 2:
         return AgentRoute(
@@ -55,8 +61,10 @@ def route_mobile_task(task: str, *, risk_score: int, failure_count: int = 0) -> 
             policy=("stop automatic retries", "preserve evidence and failed outputs"),
         )
 
-    if sensitive or architectural or risk_score >= 60:
+    if sensitive or architectural or risk_score >= 60 or failure_count == 1:
         reasons = []
+        if failure_count == 1:
+            reasons.append("worker failed once; do not repeat the same low-cost attempt")
         if sensitive:
             reasons.append("monetization, identity, privacy, or platform-sensitive scope")
         if architectural:
@@ -102,5 +110,8 @@ def route_mobile_task(task: str, *, risk_score: int, failure_count: int = 0) -> 
         risk="medium",
         requires_review=True,
         reasons=(f"moderate Unity risk score is {risk_score}",),
-        policy=("review bounded worker output before application", "require relevant Unity verification"),
+        policy=(
+            "review bounded worker output before application",
+            "require relevant Unity verification",
+        ),
     )

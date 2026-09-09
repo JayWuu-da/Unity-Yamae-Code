@@ -6,8 +6,7 @@ from typing import Any
 from .constants import HARNESS_EDITOR_PROBE_METHOD
 from .context import ContextSelector
 from .memory_store import HarnessMemoryStore
-from .mobile_knowledge import build_mobile_context
-from .mobile_routing import route_mobile_task
+from .mobile_tools import register_mobile_tools
 from .project_files import ProjectFileInventory
 from .risk import RiskClassifier
 from .scanner import UnityProjectScanner
@@ -28,24 +27,6 @@ def build_default_tool_registry(config: dict[str, Any], project_path: Path) -> T
         (
             _spec("harness.risk.classify", "Classify Unity task risk.", "read", "static_scan"),
             _risk(config, project_path),
-        ),
-        (
-            _spec(
-                "harness.mobile.route",
-                "Select the cheapest safe execution lane for a Unity mobile task.",
-                "read",
-                "static_scan",
-            ),
-            _mobile_route(config, project_path),
-        ),
-        (
-            _spec(
-                "harness.mobile.knowledge",
-                "Select source-backed Unity mobile SDK guidance without a model call.",
-                "read",
-                "static_scan",
-            ),
-            _mobile_knowledge,
         ),
         (
             _spec("unity.verify.plan", "Plan Unity verification commands.", "plan", "planned"),
@@ -111,6 +92,7 @@ def build_default_tool_registry(config: dict[str, Any], project_path: Path) -> T
         ),
     ):
         registry.register(spec, handler)
+    register_mobile_tools(registry, config, project_path)
     return registry
 
 
@@ -149,31 +131,6 @@ def _risk(config: dict[str, Any], project_path: Path):
         return completed_tool_result("harness.risk.classify", "static_scan", risk_report)
 
     return handler
-
-
-def _mobile_route(config: dict[str, Any], project_path: Path):
-    def handler(payload: dict[str, Any]) -> dict[str, Any]:
-        task = str(payload.get("task", ""))
-        failure_count = int(payload.get("failure_count", 0))
-        profile = UnityProjectScanner(project_path, config).scan()
-        risk_report = RiskClassifier(config).classify(task, profile)
-        route = route_mobile_task(
-            task,
-            risk_score=int(risk_report["risk_score"]),
-            failure_count=failure_count,
-        )
-        result = route.to_dict()
-        result["risk_report"] = risk_report
-        return completed_tool_result("harness.mobile.route", "static_scan", result)
-
-    return handler
-
-
-def _mobile_knowledge(payload: dict[str, Any]) -> dict[str, Any]:
-    query = str(payload.get("query") or payload.get("task") or "")
-    top_k = int(payload.get("top_k", 4))
-    context = build_mobile_context(query, top_k=top_k)
-    return completed_tool_result("harness.mobile.knowledge", "static_scan", context)
 
 
 def _verify(config: dict[str, Any], project_path: Path):
@@ -225,7 +182,6 @@ def _context_select(config: dict[str, Any], project_path: Path):
     def handler(payload: dict[str, Any]) -> dict[str, Any]:
         task = str(payload.get("task", ""))
         profile = UnityProjectScanner(project_path, config).scan(deep=True)
-        inventory = ProjectFileInventory.collect(project_path)
         risk_report = RiskClassifier(config).classify(task, profile)
         context = ContextSelector(project_path, config).select(
             task,
@@ -233,7 +189,8 @@ def _context_select(config: dict[str, Any], project_path: Path):
             risk_report["mode"],
         )
         if not context["relevant_files"]:
-            _add_matching_scripts(context, task, inventory)
+            inventory = ProjectFileInventory.collect(project_path)
+            _add_matching_scripts(context, task, inventory, config)
         context["schema"] = "unity-harness.context-pack.v1"
         return completed_tool_result(
             "harness.context.select",
@@ -248,9 +205,17 @@ def _add_matching_scripts(
     context: dict[str, Any],
     task: str,
     inventory: ProjectFileInventory,
+    config: dict[str, Any],
 ) -> None:
     task_words = _search_words(task)
+    limits = config.get("context", {})
+    max_files = max(0, int(limits.get("max_files", 10)))
+    max_size = max(0, int(limits.get("max_file_size", 100000)))
     for script in inventory.scripts:
+        if len(context["relevant_files"]) >= max_files:
+            break
+        if script.stat().st_size > max_size:
+            continue
         relative_path = inventory.relative_path(script)
         if not (task_words & _search_words(script.stem)):
             continue

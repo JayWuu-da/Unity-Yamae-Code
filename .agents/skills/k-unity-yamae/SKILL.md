@@ -5,6 +5,8 @@ description: Unity harness workflow for Codex App and Codex CLI on Windows.
 
 # K-Unity-Yamae
 
+Completion: changed paths, actual checks, blockers; expand only on request.
+Keep necessary verification; shorten narration, not safety evidence.
 Use this skill when Codex App or Codex CLI is asked to inspect, plan, edit,
 or verify a Unity project that has K-Unity-Yamae installed.
 
@@ -15,7 +17,10 @@ If a file, prefab, scene, listener, or Inspector relationship is not found,
 report it as unknown until `kunity-yamae inspect --editor-probe --json` or
 equivalent Unity evidence runs.
 
-Run these from Windows PowerShell at the Unity project root:
+Command reference for Windows PowerShell; do NOT execute every command for each task.
+Prefer `kunity-yamae worker-pack --request-file task.json --json` for bounded work.
+A needs_context/escalated packet is not permission to invoke a cheap worker.
+For planned_local, use the operation proposal; do not call a worker.
 
 ```powershell
 kunity-yamae providers doctor --json

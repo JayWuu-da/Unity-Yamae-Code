@@ -50,6 +50,12 @@ Expected routing examples:
 - `Change AdMob rewarded callback` -> `architect`.
 - Two failed automatic attempts -> `human`.
 
-## Next integration step
+## Bounded execution preparation
 
-The next change should feed `harness.mobile.route` and `harness.mobile.knowledge` into orchestration planning without weakening the existing orchestration schema. Model IDs must remain configuration, not hard-coded policy. Token/cost measurements should be recorded from the provider execution layer rather than estimated from role names.
+The extension also exposes `harness.worker.prepare` and the `worker-pack` CLI.
+See [Worker packets](WORKER_PACKETS.md) for its work-order contract, deterministic prefab/UI
+proposals, source/hash budget and explicit evidence limits. See
+[Efficiency research](EFFICIENCY_RESEARCH.md) for primary sources and an evaluation design.
+
+A first failed worker attempt now escalates to architect; a second routes to human.
+This remains advisory. No automatic model backend or live Editor mutation was added.

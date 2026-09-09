@@ -74,6 +74,10 @@ jobs:
           python -m pip install dist/*.whl
           cd "${RUNNER_TEMP}"
           python -c "from kunity_yamae.mobile_knowledge import load_mobile_knowledge; assert load_mobile_knowledge()"
+      - name: Run offline efficiency fixture
+        run: |
+          python -m kunity_yamae.efficiency_benchmark > dist/efficiency-benchmark.json
+          cat dist/efficiency-benchmark.json
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:

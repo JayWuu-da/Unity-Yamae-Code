@@ -62,7 +62,7 @@ def test_v2_docs_and_fixtures_stay_project_neutral(tmp_path: Path) -> None:
         "Sample" + "Presenter",
     )
     checked_paths = [
-        Path("plans/next-upgrade-wave-ordering.md"),
+        *sorted(Path("docs").glob("*.md")),
         *sorted(
             path for path in project_path.rglob("*") if path.is_file() and ".git" not in path.parts
         ),

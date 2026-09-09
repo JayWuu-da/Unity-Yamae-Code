@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
@@ -64,16 +65,16 @@ class ProjectFileInventory:
 
 def _iter_project_files(project_path: Path) -> tuple[Path, ...]:
     files: list[Path] = []
-    for path in project_path.rglob("*"):
-        if not path.is_file():
-            continue
-        try:
-            relative = path.relative_to(project_path)
-        except ValueError:
-            continue
-        if GENERATED_FOLDERS & set(relative.parts):
-            continue
-        files.append(path)
+    # Prune before descent: filtering rglob results still visits every Library entry.
+    for root, directories, filenames in os.walk(project_path, followlinks=False):
+        directories[:] = sorted(
+            name for name in directories
+            if name not in GENERATED_FOLDERS and not (Path(root) / name).is_symlink()
+        )
+        for name in sorted(filenames):
+            path = Path(root) / name
+            if not path.is_symlink() and path.is_file():
+                files.append(path)
     return tuple(files)
 
 

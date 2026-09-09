@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from datetime import date
 from importlib.resources import files
-import json
+
+from .risk_checks import has_task_keyword, normalize_task_text
 
 
 def load_mobile_knowledge() -> list[dict[str, object]]:
@@ -10,19 +12,23 @@ def load_mobile_knowledge() -> list[dict[str, object]]:
     return json.loads(raw)
 
 
-def retrieve_mobile_knowledge(query: str, *, top_k: int = 4, today: date | None = None) -> list[dict[str, object]]:
+def retrieve_mobile_knowledge(
+    query: str, *, top_k: int = 4, today: date | None = None,
+) -> list[dict[str, object]]:
     """Return only relevant, source-backed mobile SDK cards.
 
     Retrieval is intentionally deterministic and local: no embedding/API call is required.
     """
-    if top_k < 1 or top_k > 20:
+    if type(top_k) is not int or top_k < 1 or top_k > 20:
         raise ValueError("top_k must be between 1 and 20")
     today = today or date.today()
-    text = query.lower()
+    text = normalize_task_text(query)
     ranked: list[tuple[float, dict[str, object]]] = []
     for card in load_mobile_knowledge():
         tags = [str(tag).lower() for tag in card.get("tags", [])]
-        score = sum(1.0 + min(len(tag), 12) / 12 for tag in tags if tag in text)
+        score = sum(
+            1.0 + min(len(tag), 12) / 12 for tag in tags if has_task_keyword(text, [tag])
+        )
         if score <= 0:
             continue
         row = dict(card)
@@ -35,7 +41,9 @@ def retrieve_mobile_knowledge(query: str, *, top_k: int = 4, today: date | None 
     return [row for _, row in ranked[:top_k]]
 
 
-def build_mobile_context(query: str, *, top_k: int = 4, today: date | None = None) -> dict[str, object]:
+def build_mobile_context(
+    query: str, *, top_k: int = 4, today: date | None = None,
+) -> dict[str, object]:
     cards = retrieve_mobile_knowledge(query, top_k=top_k, today=today)
     return {
         "schema": "unity-harness.mobile-knowledge.v1",
