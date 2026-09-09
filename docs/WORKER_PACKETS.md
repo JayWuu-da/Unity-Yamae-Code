@@ -75,7 +75,9 @@ from a filename. UI Toolkit template instantiation still needs a future compatib
 Config key `efficiency.max_prompt_bytes` defaults to 16000 (UTF-8 bytes). Source reads are limited
 to 1 MB/file, 8 ranges/request and 160 lines/range; code edits allow at most 4 target files.
 Required content is never truncated to fit. Traversal/symlink reads and raw Unity YAML ranges
-are rejected. The library helper `check_packet_freshness` rechecks observed hashes; callers must
+are rejected. Filtered Editor facts are limited to 6,000 UTF-8 bytes without truncation. Local plans retain
+the original task and acceptance criteria; old references must be null or a bounded observed
+identity. The library helper `check_packet_freshness` rechecks observed hashes; callers must
 invoke it immediately before guarded application. This PR does not add that application hook.
 
 The old guarded-patch and live-verification paths are retained. There is no automatic Codex

@@ -137,6 +137,8 @@ def focused_editor_report(root: Path, targets: list[str]) -> tuple[dict, dict[st
         selected[section] = rows
     if not any(selected.values()):
         raise ValueError("Editor report has no facts for requested assets")
+    if len(json.dumps(selected, ensure_ascii=False).encode("utf-8")) > 6000:
+        raise ValueError("Editor selection exceeds the byte limit; obtain a narrower report")
     return {"source": relative, "facts": selected,
             "freshness": "unknown; re-resolve live before mutation",
             "complete_object_graph": False}, {relative: digest(raw)}

@@ -134,7 +134,8 @@ def prepare_worker_packet(
         if len(compact_json(contract).encode("utf-8")) > 4000:
             result["missing"].append("object_contract exceeds 4000 UTF-8 bytes")
             return result
-        return plan_local_operation(kind, targets[0], contract, hashes, editor, result)
+        return plan_local_operation(
+            kind, targets[0], contract, hashes, editor, result, task=task, acceptance=acceptance)
     query = task + " " + " ".join(package_ids)
     cards = retrieve_mobile_knowledge(query, top_k=2)
     knowledge = [{key: card[key] for key in
@@ -170,8 +171,12 @@ def check_packet_freshness(project_path: Path, packet: dict[str, Any]) -> list[s
     for path, expected in packet["payload"]["base_sha256"].items():
         try:
             current = digest(read_bytes(project_path, path))
-        except (OSError, ValueError):
+        except FileNotFoundError:
             current = None
+        except (OSError, ValueError):
+            # An unreadable or newly symlinked path is not the same as an absent file.
+            stale.append(path)
+            continue
         if current != expected:
             stale.append(path)
     return stale

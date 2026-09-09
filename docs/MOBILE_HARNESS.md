@@ -4,7 +4,7 @@ This extension keeps K-Unity-Yamae's existing risk, context, guarded patch, and 
 
 ## Goal
 
-Use the strongest model only when the task needs architectural, integration, native-build, monetization, identity, privacy, or recovery reasoning. Deterministic inspection should consume no model tokens, while bounded low-risk changes can be delegated to a cheaper worker.
+Use the strongest model only when the task needs architectural, integration, native-build, monetization, identity, privacy, or recovery reasoning. Deterministic inspection should avoid an additional model call, while bounded low-risk changes can be delegated to a cheaper worker. Returning tool data to a parent agent can still consume context tokens.
 
 ## Execution lanes
 

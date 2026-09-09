@@ -158,3 +158,11 @@ Harness-generated caches and reports must stay under `.unity-harness/cache/`, `.
 ## License
 
 MIT License.
+
+## Bounded worker preparation
+
+When target files and ranges are already known, use `kunity-yamae worker-pack --request-file
+.unity-harness/cache/task.json --json` instead of repeating all discovery commands. It prepares
+compact code/async context or a deterministic prefab/UI operation proposal without a model call.
+It does not apply edits or verify Unity. See [work orders](docs/WORKER_PACKETS.md) and
+[research and evaluation](docs/EFFICIENCY_RESEARCH.md).
