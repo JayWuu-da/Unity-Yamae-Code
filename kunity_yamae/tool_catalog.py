@@ -6,6 +6,8 @@ from typing import Any
 from .constants import HARNESS_EDITOR_PROBE_METHOD
 from .context import ContextSelector
 from .memory_store import HarnessMemoryStore
+from .mobile_knowledge import build_mobile_context
+from .mobile_routing import route_mobile_task
 from .project_files import ProjectFileInventory
 from .risk import RiskClassifier
 from .scanner import UnityProjectScanner
@@ -26,6 +28,24 @@ def build_default_tool_registry(config: dict[str, Any], project_path: Path) -> T
         (
             _spec("harness.risk.classify", "Classify Unity task risk.", "read", "static_scan"),
             _risk(config, project_path),
+        ),
+        (
+            _spec(
+                "harness.mobile.route",
+                "Select the cheapest safe execution lane for a Unity mobile task.",
+                "read",
+                "static_scan",
+            ),
+            _mobile_route(config, project_path),
+        ),
+        (
+            _spec(
+                "harness.mobile.knowledge",
+                "Select source-backed Unity mobile SDK guidance without a model call.",
+                "read",
+                "static_scan",
+            ),
+            _mobile_knowledge,
         ),
         (
             _spec("unity.verify.plan", "Plan Unity verification commands.", "plan", "planned"),
@@ -129,6 +149,31 @@ def _risk(config: dict[str, Any], project_path: Path):
         return completed_tool_result("harness.risk.classify", "static_scan", risk_report)
 
     return handler
+
+
+def _mobile_route(config: dict[str, Any], project_path: Path):
+    def handler(payload: dict[str, Any]) -> dict[str, Any]:
+        task = str(payload.get("task", ""))
+        failure_count = int(payload.get("failure_count", 0))
+        profile = UnityProjectScanner(project_path, config).scan()
+        risk_report = RiskClassifier(config).classify(task, profile)
+        route = route_mobile_task(
+            task,
+            risk_score=int(risk_report["risk_score"]),
+            failure_count=failure_count,
+        )
+        result = route.to_dict()
+        result["risk_report"] = risk_report
+        return completed_tool_result("harness.mobile.route", "static_scan", result)
+
+    return handler
+
+
+def _mobile_knowledge(payload: dict[str, Any]) -> dict[str, Any]:
+    query = str(payload.get("query") or payload.get("task") or "")
+    top_k = int(payload.get("top_k", 4))
+    context = build_mobile_context(query, top_k=top_k)
+    return completed_tool_result("harness.mobile.knowledge", "static_scan", context)
 
 
 def _verify(config: dict[str, Any], project_path: Path):
