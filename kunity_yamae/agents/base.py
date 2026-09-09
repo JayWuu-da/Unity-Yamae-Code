@@ -12,7 +12,7 @@ UNITY_SYSTEM_PROMPT = "\n".join(
         "",
         "Core rules:",
         "1. Classify Unity risk before editing.",
-        "2. Keep changes minimal and explain why each file changed.",
+        "2. Keep changes minimal; report changes, real checks and blockers without a tutorial.",
         "3. Do not edit generated folders: Library, Temp, Obj, Logs, Builds, UserSettings.",
         "4. Do not directly write .unity, .prefab, .asset, .controller, .anim, "
         "or .meta files unless the selected mode explicitly permits it.",
@@ -116,7 +116,8 @@ class BaseAgent(ABC):
             "Return a unified diff when code changes are needed so K-Unity-Yamae can "
             "validate it through `--guarded-agent-patch`. Do not use "
             "FILE/ACTION/CONTENT blocks for guarded flow output. For each file, explain "
-            "the Unity-specific risk decision outside the diff."
+            "the Unity-specific risk decision in at most one short line outside the diff. "
+            "Do not restate the task or print full unchanged files."
         )
         return "\n".join(prompt_parts)
 

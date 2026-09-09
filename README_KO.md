@@ -136,3 +136,11 @@ python -m kunity_yamae.cli release-check --json
 하네스가 생성한 cache/report는 `.unity-harness/cache/`, `.unity-harness/reports/`, `.unity-harness/last-*` 아래에만 남겨야 합니다. `.omo/`, `.omx/`, `plans/`, `evidence/` 같은 scratch planning/evidence artifacts는 로컬 작업 영수증이며 추적되는 프로젝트 산출물이 아닙니다.
 
 작은 수정은 빠르게, 위험한 변경은 엄격하게, 검증 보고는 실제 증거에 맞게 처리하는 것이 K-Unity-Yamae의 목표입니다.
+
+## 워커 지식 보완과 효율적인 작업 준비
+
+수정할 파일과 범위가 확인되어 있다면 `worker-pack`으로 정확한 코드 구간·버전·작업별
+절차·합격 기준을 한 번에 묶습니다. 모든 정보가 주어진 프리팹 연결과 UI 템플릿 작업은
+모델 호출 없이 변경 계획만 만듭니다. 실제 적용이나 Unity 검증 완료를 뜻하지 않습니다.
+[작업 요청 형식](docs/WORKER_PACKETS.md)과 [연구·평가 설계](docs/EFFICIENCY_RESEARCH.md)를
+참고하세요. 검증되지 않은 토큰 절감률이나 모델 처리 속도 향상은 주장하지 않습니다.

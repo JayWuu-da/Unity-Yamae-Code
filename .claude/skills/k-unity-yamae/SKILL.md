@@ -5,6 +5,8 @@ description: Unity harness workflow for Claude Code Desktop and Claude CLI.
 
 # K-Unity-Yamae
 
+Completion: changed paths, actual checks, blockers; expand only on request.
+Keep necessary verification; shorten narration, not safety evidence.
 Use this skill for Unity work in Claude Code Desktop or Claude CLI when this project
 has K-Unity-Yamae installed.
 This primary Claude skill is the preferred Claude surface; the slash command is a
@@ -22,7 +24,9 @@ Windows setup expectations:
 - Install Git for Windows for reliable shell and git behavior.
 - Keep desktop/CLI handoff and Unity batchmode checks explicit.
 
-Baseline commands:
+Command reference: choose the needed path, not all commands.
+For planned_local, use the operation proposal; do not call a worker.
+Prefer `kunity-yamae worker-pack --request-file task.json --json` for bounded work.
 
 ```powershell
 kunity-yamae providers doctor --json

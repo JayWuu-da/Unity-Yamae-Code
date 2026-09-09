@@ -6,6 +6,7 @@ from typing import Any
 from .constants import HARNESS_EDITOR_PROBE_METHOD
 from .context import ContextSelector
 from .memory_store import HarnessMemoryStore
+from .mobile_tools import register_mobile_tools
 from .project_files import ProjectFileInventory
 from .risk import RiskClassifier
 from .scanner import UnityProjectScanner
@@ -91,6 +92,7 @@ def build_default_tool_registry(config: dict[str, Any], project_path: Path) -> T
         ),
     ):
         registry.register(spec, handler)
+    register_mobile_tools(registry, config, project_path)
     return registry
 
 
@@ -180,7 +182,6 @@ def _context_select(config: dict[str, Any], project_path: Path):
     def handler(payload: dict[str, Any]) -> dict[str, Any]:
         task = str(payload.get("task", ""))
         profile = UnityProjectScanner(project_path, config).scan(deep=True)
-        inventory = ProjectFileInventory.collect(project_path)
         risk_report = RiskClassifier(config).classify(task, profile)
         context = ContextSelector(project_path, config).select(
             task,
@@ -188,7 +189,8 @@ def _context_select(config: dict[str, Any], project_path: Path):
             risk_report["mode"],
         )
         if not context["relevant_files"]:
-            _add_matching_scripts(context, task, inventory)
+            inventory = ProjectFileInventory.collect(project_path)
+            _add_matching_scripts(context, task, inventory, config)
         context["schema"] = "unity-harness.context-pack.v1"
         return completed_tool_result(
             "harness.context.select",
@@ -203,9 +205,17 @@ def _add_matching_scripts(
     context: dict[str, Any],
     task: str,
     inventory: ProjectFileInventory,
+    config: dict[str, Any],
 ) -> None:
     task_words = _search_words(task)
+    limits = config.get("context", {})
+    max_files = max(0, int(limits.get("max_files", 10)))
+    max_size = max(0, int(limits.get("max_file_size", 100000)))
     for script in inventory.scripts:
+        if len(context["relevant_files"]) >= max_files:
+            break
+        if script.stat().st_size > max_size:
+            continue
         relative_path = inventory.relative_path(script)
         if not (task_words & _search_words(script.stem)):
             continue

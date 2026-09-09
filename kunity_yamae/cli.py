@@ -17,6 +17,7 @@ from .cli_scan import scan_cmd
 from .cli_tools import tools_cmd
 from .cli_verify import verify_cmd
 from .cli_work import work_cmd
+from .cli_worker import worker_pack_cmd
 from .config import load_config
 
 
@@ -46,6 +47,7 @@ main.add_command(scan_cmd)
 main.add_command(tools_cmd)
 main.add_command(verify_cmd)
 main.add_command(work_cmd)
+main.add_command(worker_pack_cmd)
 
 
 if __name__ == "__main__":
