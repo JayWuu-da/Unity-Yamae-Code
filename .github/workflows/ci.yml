@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Install package
-        run: python -m pip install -e ".[dev,agents]"
+        run: python -m pip install -e ".[dev]"
       - name: Run tests
         run: python -m pytest -q
 
@@ -54,3 +54,30 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Run release check
         run: python -m kunity_yamae.cli release-check --json
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Build source and wheel distributions
+        run: |
+          python -m pip install build
+          python -m build
+      - name: Verify knowledge ships in the wheel
+        run: |
+          python -m pip install dist/*.whl
+          cd "${RUNNER_TEMP}"
+          python -c "from kunity_yamae.mobile_knowledge import load_mobile_knowledge; assert load_mobile_knowledge()"
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
